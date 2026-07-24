@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // API gateway base URL
-const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
+const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 
+  (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3000');
 
 interface Event {
   id: string;
