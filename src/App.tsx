@@ -80,8 +80,17 @@ export default function App({ onBack }: AppProps) {
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
 
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+
   // Forms
-  const [eventForm, setEventForm] = useState({
+  const [eventForm, setEventForm] = useState<{
+    id?: string;
+    name: string;
+    date: string;
+    venue: string;
+    base_image_url: string;
+    qr_config: { x: number; y: number; size: number };
+  }>({
     name: '',
     date: '',
     venue: '',
@@ -208,8 +217,72 @@ export default function App({ onBack }: AppProps) {
   };
 
   // Event handlers
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, subfolder: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Por favor selecciona una imagen válida.', 'error');
+      return;
+    }
+
+    let recordId = eventForm.id;
+    if (!recordId) {
+      recordId = crypto.randomUUID();
+      setEventForm(prev => ({ ...prev, id: recordId }));
+    }
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${recordId}.${fileExt}`;
+    const uploadPath = `${subfolder}/${fileName}`;
+
+    setIsUploading(true);
+    try {
+      const res = await fetch(`${gatewayUrl}/storage/v1/object/pictures/${uploadPath}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': file.type,
+          'x-upsert': 'true'
+        },
+        body: file
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Error al subir la imagen');
+      }
+
+      const publicUrl = `${gatewayUrl}/storage/v1/object/public/pictures/${uploadPath}`;
+      setEventForm(prev => ({ ...prev, base_image_url: publicUrl }));
+      showToast('Imagen subida con éxito', 'success');
+    } catch (err: any) {
+      console.error('Error uploading image:', err);
+      showToast('Fallo al subir la imagen: ' + err.message, 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handlePreviewNewTicket = () => {
+    const simulatedEvent: Event = {
+      id: eventForm.id || 'PREVIEW-TEMP-ID',
+      name: eventForm.name || 'EVENTO DE PRUEBA',
+      date: eventForm.date || new Date().toISOString(),
+      venue: eventForm.venue || 'SEDE DE PRUEBA',
+      base_image_url: eventForm.base_image_url,
+      qr_config: {
+        x: eventForm.qr_config.x,
+        y: eventForm.qr_config.y,
+        size: eventForm.qr_config.size,
+      },
+      created_at: new Date().toISOString()
+    };
+    handleDrawTicket(simulatedEvent, 'PREVIEW-000000');
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!eventForm.name || !eventForm.date || !eventForm.venue) {
       showToast('Por favor completa todos los campos obligatorios', 'error');
       return;
@@ -223,6 +296,7 @@ export default function App({ onBack }: AppProps) {
           'Prefer': 'return=representation'
         },
         body: JSON.stringify({
+          id: eventForm.id || undefined,
           name: eventForm.name,
           date: new Date(eventForm.date).toISOString(),
           venue: eventForm.venue,
@@ -237,6 +311,7 @@ export default function App({ onBack }: AppProps) {
         showToast('Evento creado exitosamente', 'success');
         setShowEventModal(false);
         setEventForm({
+          id: undefined,
           name: '',
           date: '',
           venue: '',
@@ -1026,16 +1101,68 @@ export default function App({ onBack }: AppProps) {
                     placeholder="Ej. Polideportivo Central"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Imagen Base del Ticket (Fondo URL)</label>
-                  <input
-                    type="text"
-                    value={eventForm.base_image_url}
-                    onChange={(e) => setEventForm({ ...eventForm, base_image_url: e.target.value })}
-                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                    placeholder="URL de imagen de fondo"
-                  />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Imagen de Fondo del Ticket *</label>
+                  
+                  <div className="relative group w-full h-32 bg-canvas border border-divider overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#FF8000] transition-all">
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
+                      <svg className="w-5 h-5 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-[8px] font-mono text-white uppercase font-bold tracking-wider">
+                        {eventForm.base_image_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                      </span>
+                    </div>
+
+                    {/* Preview Image or Placeholder */}
+                    {eventForm.base_image_url ? (
+                      <img 
+                        src={eventForm.base_image_url} 
+                        alt="Fondo de ticket" 
+                        className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center text-center p-3 text-mutedText group-hover:text-primaryText transition-colors">
+                        <svg className="w-6 h-6 mb-1 opacity-55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-[8px] font-mono uppercase tracking-wider font-bold">
+                          Haz clic para subir imagen
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Invisible File Input */}
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'tickets')}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                      disabled={isUploading}
+                    />
+                  </div>
+
+                  {isUploading && (
+                    <span className="text-[8px] font-mono text-[#FF8000] block mt-1 uppercase tracking-wide animate-pulse">Subiendo imagen...</span>
+                  )}
+                  {eventForm.base_image_url && !isUploading && (
+                    <span className="text-[8px] font-mono text-emerald-400 block mt-1 uppercase tracking-wide">✓ Cargada con éxito</span>
+                  )}
+
+                  {/* Manual URL input fallback */}
+                  <div className="pt-1">
+                    <span className="text-[8px] font-mono text-mutedText uppercase tracking-wider block mb-1">O introduce una URL externa:</span>
+                    <input
+                      type="text"
+                      value={eventForm.base_image_url}
+                      onChange={(e) => setEventForm({ ...eventForm, base_image_url: e.target.value })}
+                      className="w-full bg-inputBg border border-divider px-3 py-1.5 text-[10px] text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                  </div>
                 </div>
+
                 <div className="pt-2">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block mb-2">Configuración Coordenadas Código QR (JSON)</label>
                   <div className="grid grid-cols-3 gap-2">
@@ -1082,13 +1209,19 @@ export default function App({ onBack }: AppProps) {
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowEventModal(false)}
-                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
+                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
               >
                 Cancelar
               </button>
               <button
+                onClick={handlePreviewNewTicket}
+                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText hover:text-white rounded-none border border-divider font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+              >
+                Previsualizar
+              </button>
+              <button
                 onClick={handleCreateEvent}
-                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer"
+                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
               >
                 Crear Evento
               </button>
