@@ -1062,151 +1062,187 @@ export default function App({ onBack }: AppProps) {
       {/* CREATE EVENT MODAL (Drawer style) */}
       {showEventModal && (
         <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
-            <div>
-              <div className="flex justify-between items-center mb-6 border-b border-divider pb-4">
-                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Crear Nuevo Evento</h2>
-                <button onClick={() => setShowEventModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
-              </div>
-              <form onSubmit={handleCreateEvent} className="space-y-4 text-left">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Evento *</label>
-                  <input
-                    type="text"
-                    required
-                    value={eventForm.name}
-                    onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
-                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                    placeholder="Ej. Torneo de Invierno 2026"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Fecha del Evento *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={eventForm.date}
-                    onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Lugar / Sede *</label>
-                  <input
-                    type="text"
-                    required
-                    value={eventForm.venue}
-                    onChange={(e) => setEventForm({ ...eventForm, venue: e.target.value })}
-                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                    placeholder="Ej. Polideportivo Central"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Imagen de Fondo del Ticket *</label>
+          <div className="w-full max-w-5xl bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
+              <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Crear Nuevo Evento</h2>
+              <button onClick={() => setShowEventModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
+            </div>
+
+            {/* Scrollable Form Body */}
+            <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+              <form onSubmit={handleCreateEvent} className="text-left space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                   
-                  <div className="relative group w-full h-32 bg-canvas border border-divider overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#FF8000] transition-all">
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
-                      <svg className="w-5 h-5 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-[8px] font-mono text-white uppercase font-bold tracking-wider">
-                        {eventForm.base_image_url ? 'Cambiar Imagen' : 'Subir Imagen'}
-                      </span>
-                    </div>
-
-                    {/* Preview Image or Placeholder */}
-                    {eventForm.base_image_url ? (
-                      <img 
-                        src={eventForm.base_image_url} 
-                        alt="Fondo de ticket" 
-                        className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300"
+                  {/* Columna 1: Datos Básicos */}
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-mono font-bold text-accentBlue uppercase tracking-wider border-b border-divider pb-2 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accentBlue"></span>
+                      Datos del Evento
+                    </h3>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Evento *</label>
+                      <input
+                        type="text"
+                        required
+                        value={eventForm.name}
+                        onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                        className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                        placeholder="Ej. Torneo de Invierno 2026"
                       />
-                    ) : (
-                      <div className="flex flex-col items-center text-center p-3 text-mutedText group-hover:text-primaryText transition-colors">
-                        <svg className="w-6 h-6 mb-1 opacity-55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-[8px] font-mono uppercase tracking-wider font-bold">
-                          Haz clic para subir imagen
-                        </span>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Fecha del Evento *</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={eventForm.date}
+                        onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+                        className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Lugar / Sede *</label>
+                      <input
+                        type="text"
+                        required
+                        value={eventForm.venue}
+                        onChange={(e) => setEventForm({ ...eventForm, venue: e.target.value })}
+                        className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                        placeholder="Ej. Polideportivo Central"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Columna 2: Imagen de Fondo */}
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-mono font-bold text-accentBlue uppercase tracking-wider border-b border-divider pb-2 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accentBlue"></span>
+                      Diseño del Ticket
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Imagen de Fondo del Ticket *</label>
+                      
+                      <div className="relative group w-full h-32 bg-canvas border border-divider overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#FF8000] transition-all">
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
+                          <svg className="w-5 h-5 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-[8px] font-mono text-white uppercase font-bold tracking-wider">
+                            {eventForm.base_image_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                          </span>
+                        </div>
+
+                        {/* Preview Image or Placeholder */}
+                        {eventForm.base_image_url ? (
+                          <img 
+                            src={eventForm.base_image_url} 
+                            alt="Fondo de ticket" 
+                            className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center text-center p-3 text-mutedText group-hover:text-primaryText transition-colors">
+                            <svg className="w-6 h-6 mb-1 opacity-55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-[8px] font-mono uppercase tracking-wider font-bold">
+                              Haz clic para subir imagen
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Invisible File Input */}
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, 'tickets')}
+                          className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                          disabled={isUploading}
+                        />
                       </div>
-                    )}
 
-                    {/* Invisible File Input */}
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, 'tickets')}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                      disabled={isUploading}
-                    />
-                  </div>
+                      {isUploading && (
+                        <span className="text-[8px] font-mono text-[#FF8000] block mt-1 uppercase tracking-wide animate-pulse">Subiendo imagen...</span>
+                      )}
+                      {eventForm.base_image_url && !isUploading && (
+                        <span className="text-[8px] font-mono text-emerald-400 block mt-1 uppercase tracking-wide">✓ Cargada con éxito</span>
+                      )}
 
-                  {isUploading && (
-                    <span className="text-[8px] font-mono text-[#FF8000] block mt-1 uppercase tracking-wide animate-pulse">Subiendo imagen...</span>
-                  )}
-                  {eventForm.base_image_url && !isUploading && (
-                    <span className="text-[8px] font-mono text-emerald-400 block mt-1 uppercase tracking-wide">✓ Cargada con éxito</span>
-                  )}
-
-                  {/* Manual URL input fallback */}
-                  <div className="pt-1">
-                    <span className="text-[8px] font-mono text-mutedText uppercase tracking-wider block mb-1">O introduce una URL externa:</span>
-                    <input
-                      type="text"
-                      value={eventForm.base_image_url}
-                      onChange={(e) => setEventForm({ ...eventForm, base_image_url: e.target.value })}
-                      className="w-full bg-inputBg border border-divider px-3 py-1.5 text-[10px] text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block mb-2">Configuración Coordenadas Código QR (JSON)</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-secondaryText block font-mono">Posición X</span>
-                      <input
-                        type="number"
-                        value={eventForm.qr_config.x}
-                        onChange={(e) => setEventForm({ 
-                          ...eventForm, 
-                          qr_config: { ...eventForm.qr_config, x: parseInt(e.target.value) || 0 } 
-                        })}
-                        className="w-full bg-inputBg border border-divider px-2 py-1 text-center text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-secondaryText block font-mono">Posición Y</span>
-                      <input
-                        type="number"
-                        value={eventForm.qr_config.y}
-                        onChange={(e) => setEventForm({ 
-                          ...eventForm, 
-                          qr_config: { ...eventForm.qr_config, y: parseInt(e.target.value) || 0 } 
-                        })}
-                        className="w-full bg-inputBg border border-divider px-2 py-1 text-center text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-secondaryText block font-mono">Tamaño</span>
-                      <input
-                        type="number"
-                        value={eventForm.qr_config.size}
-                        onChange={(e) => setEventForm({ 
-                          ...eventForm, 
-                          qr_config: { ...eventForm.qr_config, size: parseInt(e.target.value) || 0 } 
-                        })}
-                        className="w-full bg-inputBg border border-divider px-2 py-1 text-center text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                      />
+                      {/* Manual URL input fallback */}
+                      <div className="pt-1">
+                        <span className="text-[8px] font-mono text-mutedText uppercase tracking-wider block mb-1">O introduce una URL externa:</span>
+                        <input
+                          type="text"
+                          value={eventForm.base_image_url}
+                          onChange={(e) => setEventForm({ ...eventForm, base_image_url: e.target.value })}
+                          className="w-full bg-inputBg border border-divider px-3 py-1.5 text-[10px] text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                          placeholder="https://ejemplo.com/imagen.jpg"
+                        />
+                      </div>
                     </div>
                   </div>
+
+                  {/* Columna 3: Coordenadas del QR */}
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-mono font-bold text-accentBlue uppercase tracking-wider border-b border-divider pb-2 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accentBlue"></span>
+                      Coordenadas del QR
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Posición Horizontal (X px)</label>
+                        <input
+                          type="number"
+                          value={eventForm.qr_config.x}
+                          onChange={(e) => setEventForm({ 
+                            ...eventForm, 
+                            qr_config: { ...eventForm.qr_config, x: parseInt(e.target.value) || 0 } 
+                          })}
+                          className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Posición Vertical (Y px)</label>
+                        <input
+                          type="number"
+                          value={eventForm.qr_config.y}
+                          onChange={(e) => setEventForm({ 
+                            ...eventForm, 
+                            qr_config: { ...eventForm.qr_config, y: parseInt(e.target.value) || 0 } 
+                          })}
+                          className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Tamaño del QR (px)</label>
+                        <input
+                          type="number"
+                          value={eventForm.qr_config.size}
+                          onChange={(e) => setEventForm({ 
+                            ...eventForm, 
+                            qr_config: { ...eventForm.qr_config, size: parseInt(e.target.value) || 0 } 
+                          })}
+                          className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </form>
             </div>
-            <div className="flex gap-3 mt-8">
+
+            {/* Footer Buttons */}
+            <div className="flex gap-3 mt-8 shrink-0 pt-4 border-t border-divider">
               <button
                 onClick={() => setShowEventModal(false)}
                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
@@ -1226,6 +1262,7 @@ export default function App({ onBack }: AppProps) {
                 Crear Evento
               </button>
             </div>
+
           </div>
         </div>
       )}
