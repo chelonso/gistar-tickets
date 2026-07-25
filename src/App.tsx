@@ -1062,7 +1062,7 @@ export default function App({ onBack }: AppProps) {
       {/* CREATE EVENT MODAL (Drawer style) */}
       {showEventModal && (
         <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-5xl bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden">
+          <div className="w-full max-w-[960px] bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden">
             
             {/* Header */}
             <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
@@ -1073,7 +1073,7 @@ export default function App({ onBack }: AppProps) {
             {/* Scrollable Form Body */}
             <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
               <form onSubmit={handleCreateEvent} className="text-left space-y-6">
-                <div className="grid grid-cols-3 gap-8 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                   
                   {/* Columna 1: Datos Básicos */}
                   <div className="space-y-4">
