@@ -1,35 +1,4 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #FF8000; /* Yellow-orange main theme for Gistar */
-  --accent-bg: rgba(255, 128, 0, 0.1);
-  --accent-border: rgba(255, 128, 0, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-}
-
-body {
-  color: var(--text);
-  font-family: var(--sans);
-  background: var(--bg);
-  margin: 0;
-  padding: 0;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  color: var(--text-h);
-  font-family: var(--heading);
-  margin-top: 0;
-}
-
-/* Custom Responsive Dashboard Grid for Tickets App */
+/* Custom responsive grids for Tickets App */
 .tickets-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -52,13 +21,4 @@ h1, h2, h3, h4, h5, h6 {
   .tickets-config-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-}
-
-/* QR coordinates canvas placement helper */
-.canvas-container {
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f8f8fa;
 }

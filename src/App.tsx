@@ -485,76 +485,75 @@ export default function App({ onBack }: AppProps) {
 
   if (loading) {
     return (
-      <div className="flex-grow flex items-center justify-center bg-slate-50 font-mono text-xs uppercase tracking-widest text-slate-400 min-h-screen">
-        Cargando Módulo de Tickets...
+      <div className="flex-grow flex flex-col items-center justify-center bg-canvas text-secondaryText font-mono text-xs uppercase tracking-[0.15em] min-h-screen">
+        <div className="w-8 h-8 border border-divider border-t-[#FF8000] animate-spin mb-4 rounded-none"></div>
+        <span className="animate-pulse">Cargando Módulo de Tickets...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
+    <div className="min-h-screen bg-canvas text-primaryText flex flex-col antialiased font-sans">
       {/* Toast Alert */}
       {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-lg shadow-xl text-white font-medium flex items-center gap-2 animate-slide-in ${
-          toast.type === 'success' ? 'bg-emerald-600' : toast.type === 'error' ? 'bg-rose-600' : 'bg-blue-600'
+        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-none border font-mono text-[10px] uppercase tracking-wider flex items-center gap-2 shadow-2xl animate-slide-in bg-surface ${
+          toast.type === 'success' ? 'border-emerald-500/40 text-emerald-400' : toast.type === 'error' ? 'border-rose-500/40 text-rose-400' : 'border-[#FF8000]/40 text-[#FF8000]'
         }`}>
           <span>{toast.message}</span>
         </div>
       )}
 
       {/* Main Navigation Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+      <header className="bg-surface border-b border-divider sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {onBack && (
               <button 
                 onClick={onBack}
-                className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+                className="px-3 py-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white transition-colors rounded-none font-mono text-[10px] uppercase tracking-wider cursor-pointer"
                 title="Volver a la consola principal"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+                ← Volver
               </button>
             )}
             <div className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tight text-slate-900">
+              <span className="text-base font-bold tracking-tight text-primaryText font-sans uppercase">
                 GISTAR <span className="text-[#FF8000]">TICKETS</span>
               </span>
-              <span className="text-xs bg-[#FF8000]/10 text-[#FF8000] px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+              <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-white/50 bg-[#232429] px-2 py-0.5 thin-border rounded-none">
                 Sub-App
               </span>
             </div>
           </div>
-          <nav className="flex gap-1">
+          <nav className="flex gap-1 h-full items-end">
             <button
               onClick={() => setActiveTab('events')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'events' ? 'bg-[#FF8000] text-white' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-4 py-2 border-b-2 font-mono uppercase text-[10px] tracking-wider rounded-none transition-all cursor-pointer ${
+                activeTab === 'events' ? 'border-[#FF8000] text-primaryText bg-inputBg font-bold' : 'border-transparent text-secondaryText hover:text-white hover:bg-inputBg/40'
               }`}
             >
               Eventos
             </button>
             <button
               onClick={() => setActiveTab('registrations')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'registrations' ? 'bg-[#FF8000] text-white' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-4 py-2 border-b-2 font-mono uppercase text-[10px] tracking-wider rounded-none transition-all cursor-pointer ${
+                activeTab === 'registrations' ? 'border-[#FF8000] text-primaryText bg-inputBg font-bold' : 'border-transparent text-secondaryText hover:text-white hover:bg-inputBg/40'
               }`}
             >
               Acreditados
             </button>
             <button
               onClick={() => setActiveTab('scanner')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'scanner' ? 'bg-[#FF8000] text-white' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-4 py-2 border-b-2 font-mono uppercase text-[10px] tracking-wider rounded-none transition-all cursor-pointer ${
+                activeTab === 'scanner' ? 'border-[#FF8000] text-primaryText bg-inputBg font-bold' : 'border-transparent text-secondaryText hover:text-white hover:bg-inputBg/40'
               }`}
             >
               Control Acceso (QR)
             </button>
             <button
               onClick={() => setActiveTab('config')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                activeTab === 'config' ? 'bg-[#FF8000] text-white' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-4 py-2 border-b-2 font-mono uppercase text-[10px] tracking-wider rounded-none transition-all cursor-pointer ${
+                activeTab === 'config' ? 'border-[#FF8000] text-primaryText bg-inputBg font-bold' : 'border-transparent text-secondaryText hover:text-white hover:bg-inputBg/40'
               }`}
             >
               Catálogos
@@ -564,68 +563,69 @@ export default function App({ onBack }: AppProps) {
       </header>
 
       {/* Main Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+      <main className="flex-grow overflow-y-auto max-w-7xl w-full mx-auto px-6 py-8">
+
         
         {/* ==================================================================== */}
         {/* EVENTS TAB */}
         {/* ==================================================================== */}
         {activeTab === 'events' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center border-b border-divider pb-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Eventos Registrados</h1>
-                <p className="text-sm text-slate-500">Administra los eventos de acreditación de tu organización</p>
+                <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Eventos Registrados</h1>
+                <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Administra los eventos de acreditación de tu organización</p>
               </div>
               <button
                 onClick={() => setShowEventModal(true)}
-                className="bg-[#FF8000] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-[#E07000] transition-colors flex items-center gap-2"
+                className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Crear Evento
+                + Crear Evento
               </button>
             </div>
 
             {events.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
-                <svg className="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="bg-surface border border-divider p-12 text-center rounded-none">
+                <svg className="w-12 h-12 text-mutedText mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <h3 className="text-lg font-bold text-slate-800">No hay eventos configurados</h3>
-                <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1">Crea tu primer evento para configurar tickets y acreditación QR.</p>
+                <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans mb-1">No hay eventos configurados</h3>
+                <p className="text-[10px] text-secondaryText font-mono uppercase max-w-sm mx-auto">Crea tu primer evento para configurar tickets y acreditación QR.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {events.map(event => (
-                  <div key={event.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                    <div className="h-40 bg-slate-100 relative">
+                  <div key={event.id} className="bg-surface border border-divider rounded-none overflow-hidden relative flex flex-col justify-between min-h-[260px] group hover:bg-[#18191E]/60 transition-all">
+                    {/* Top color stripe */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF8000]"></div>
+                    
+                    <div className="h-32 bg-inputBg relative overflow-hidden">
                       <img 
                         src={event.base_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60'} 
                         alt={event.name} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end p-4">
-                        <span className="text-white text-xs bg-slate-900/40 backdrop-blur px-2.5 py-1 rounded font-mono font-semibold">
+                      <div className="absolute bottom-2 left-2">
+                        <span className="text-[9px] font-mono uppercase tracking-wider bg-canvas/80 text-accentSand px-2 py-0.5 border border-divider rounded-none">
                           {new Date(event.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
                     </div>
-                    <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div className="p-5 flex-grow flex flex-col justify-between">
                       <div>
-                        <h3 className="text-lg font-bold text-slate-950 line-clamp-1">{event.name}</h3>
-                        <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans line-clamp-1">{event.name}</h3>
+                        <p className="text-[10px] text-secondaryText font-mono uppercase mt-1 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-mutedText" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           {event.venue}
                         </p>
                       </div>
-                      <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                      <div className="mt-4 pt-4 border-t border-divider flex gap-2">
                         <button
                           onClick={() => handleDrawTicket(event, 'TEST-123456')}
-                          className="flex-1 text-center bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold transition-colors"
+                          className="flex-1 text-center bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white py-2 rounded-none font-mono uppercase text-[10px] tracking-wider transition-colors cursor-pointer"
                         >
                           Ver Entrada (QR)
                         </button>
@@ -634,10 +634,12 @@ export default function App({ onBack }: AppProps) {
                             setSelectedEventId(event.id);
                             setActiveTab('config');
                           }}
-                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors"
+                          className="px-3 py-2 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white rounded-none transition-colors cursor-pointer flex items-center justify-center"
                           title="Gestionar Catálogo"
                         >
-                          🎁
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -653,10 +655,10 @@ export default function App({ onBack }: AppProps) {
         {/* ==================================================================== */}
         {activeTab === 'registrations' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center border-b border-divider pb-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Registro de Entradas</h1>
-                <p className="text-sm text-slate-500">Visualiza tickets emitidos y canje de combos asociados</p>
+                <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Registro de Entradas</h1>
+                <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Visualiza tickets emitidos y canje de combos asociados</p>
               </div>
               <button
                 onClick={() => {
@@ -666,22 +668,22 @@ export default function App({ onBack }: AppProps) {
                   }
                   setShowRegModal(true);
                 }}
-                className="bg-[#FF8000] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-[#E07000] transition-colors flex items-center gap-2"
+                className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
               >
-                🧾 Emitir Entrada (Manual)
+                Emitir Entrada (Manual)
               </button>
             </div>
 
             {registrations.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
-                <h3 className="text-lg font-bold text-slate-800">No hay acreditados</h3>
-                <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1">Registra participantes manualmente o simula una venta.</p>
+              <div className="bg-surface border border-divider p-12 text-center rounded-none">
+                <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans mb-1">No hay acreditados</h3>
+                <p className="text-[10px] text-secondaryText font-mono uppercase max-w-sm mx-auto">Registra participantes manualmente o simula una venta.</p>
               </div>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-surface border border-divider rounded-none overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="bg-inputBg border-b border-divider text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider">
                       <th className="px-6 py-4">Evento</th>
                       <th className="px-6 py-4">Comprador</th>
                       <th className="px-6 py-4">Código Ticket</th>
@@ -689,29 +691,29 @@ export default function App({ onBack }: AppProps) {
                       <th className="px-6 py-4">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-divider/55 text-xs text-secondaryText font-sans">
                     {registrations.map(reg => (
-                      <tr key={reg.id} className="hover:bg-slate-50/50">
+                      <tr key={reg.id} className="hover:bg-inputBg/40">
                         <td className="px-6 py-4">
-                          <span className="font-semibold text-slate-900">{reg.events?.name}</span>
+                          <span className="font-semibold text-primaryText font-sans">{reg.events?.name}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-slate-800">{reg.buyer_name}</div>
-                          <div className="text-xs text-slate-400 font-mono">{reg.buyer_email}</div>
+                          <div className="font-semibold text-primaryText">{reg.buyer_name}</div>
+                          <div className="text-[10px] text-mutedText font-mono">{reg.buyer_email}</div>
                         </td>
-                        <td className="px-6 py-4 font-mono font-bold text-slate-600">{reg.ticket_code}</td>
+                        <td className="px-6 py-4 font-mono font-bold text-[#FF8000]">{reg.ticket_code}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider ${
+                          <span className={`px-2 py-0.5 border text-[9px] font-mono font-bold uppercase rounded-none ${
                             reg.status === 'checked_in' 
-                              ? 'bg-emerald-100 text-emerald-800' 
+                              ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' 
                               : reg.status === 'canceled' 
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'bg-rose-950/40 border-rose-500/30 text-rose-400'
+                              : 'bg-amber-950/40 border-amber-500/30 text-amber-400'
                           }`}>
                             {reg.status === 'checked_in' ? 'Acreditado' : reg.status === 'canceled' ? 'Cancelado' : 'Pendiente'}
                           </span>
                           {reg.checked_in_at && (
-                            <div className="text-[10px] text-slate-400 mt-1">
+                            <div className="text-[9px] font-mono text-mutedText mt-1">
                               {new Date(reg.checked_in_at).toLocaleTimeString('es-ES')}
                             </div>
                           )}
@@ -719,7 +721,7 @@ export default function App({ onBack }: AppProps) {
                         <td className="px-6 py-4">
                           <button
                             onClick={() => handleDrawTicket(reg.events!, reg.ticket_code)}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs px-2.5 py-1.5 rounded-lg transition-colors font-bold"
+                            className="bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white text-[10px] font-mono uppercase tracking-wider px-2.5 py-1.5 rounded-none transition-colors cursor-pointer"
                           >
                             Visualizar
                           </button>
@@ -738,35 +740,34 @@ export default function App({ onBack }: AppProps) {
         {/* ==================================================================== */}
         {activeTab === 'scanner' && (
           <div className="max-w-2xl mx-auto space-y-6">
-            <div className="text-center">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Escanear Ticket QR</h1>
-              <p className="text-sm text-slate-500">Valida la acreditación de entrada y gestiona el canje de productos asociados</p>
+            <div className="text-center border-b border-divider pb-4">
+              <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Escanear Ticket QR</h1>
+              <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Valida la acreditación de entrada y gestiona el canje de productos asociados</p>
             </div>
 
             {/* Simulated QR Scan Area */}
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-md p-6 space-y-6 flex flex-col items-center">
+            <div className="bg-surface border border-divider p-6 space-y-6 flex flex-col items-center rounded-none">
               
               {/* Virtual Scanner Screen */}
-              <div className="w-full h-64 bg-slate-950 rounded-xl relative overflow-hidden flex flex-col items-center justify-center border-4 border-slate-900">
+              <div className="w-full h-64 bg-canvas rounded-none relative overflow-hidden flex flex-col items-center justify-center border-4 border-divider">
                 
                 {isCameraActive ? (
                   <>
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center">
-                      {/* Laser Line Animation placeholder */}
-                      <div className="w-48 h-48 border-2 border-dashed border-[#FF8000] rounded-lg relative flex items-center justify-center animate-pulse">
-                        <div className="absolute w-full h-1 bg-[#FF8000] top-1/2 left-0 shadow-lg"></div>
+                    <div className="absolute inset-0 bg-canvas/30 backdrop-blur-xs flex flex-col items-center justify-center">
+                      <div className="w-40 h-40 border border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center animate-pulse">
+                        <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 shadow-lg"></div>
                       </div>
-                      <span className="text-white text-xs font-bold uppercase tracking-wider mt-4">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-[#FF8000] mt-4">
                         Esperando Código QR...
                       </span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <span className="text-white text-sm font-bold opacity-60">Cámara Inactiva</span>
+                    <span className="text-secondaryText text-xs font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
                     <button
                       onClick={() => setIsCameraActive(true)}
-                      className="mt-3 bg-[#FF8000] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#E07000] transition-colors"
+                      className="mt-3 bg-[#FF8000] text-canvas px-4 py-2 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
                     >
                       Activar Cámara de Escaneo
                     </button>
@@ -774,15 +775,15 @@ export default function App({ onBack }: AppProps) {
                 )}
 
                 {/* Corner Accents */}
-                <div className="absolute top-4 left-4 w-4 h-4 border-t-4 border-l-4 border-white"></div>
-                <div className="absolute top-4 right-4 w-4 h-4 border-t-4 border-r-4 border-white"></div>
-                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-4 border-l-4 border-white"></div>
-                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-4 border-r-4 border-white"></div>
+                <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-[#FF8000]"></div>
+                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-[#FF8000]"></div>
+                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-[#FF8000]"></div>
+                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-[#FF8000]"></div>
               </div>
 
               {/* Manual Input (Fallback / Simulación) */}
-              <div className="w-full space-y-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              <div className="w-full space-y-2 text-left">
+                <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
                   Simular Escaneo (Digita el Código del Ticket)
                 </label>
                 <div className="flex gap-2">
@@ -791,7 +792,7 @@ export default function App({ onBack }: AppProps) {
                     placeholder="Ej. EVT-123456"
                     value={scanCodeInput}
                     onChange={(e) => setScanCodeInput(e.target.value)}
-                    className="flex-1 border border-slate-200 px-4 py-3 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none font-mono uppercase font-bold text-slate-800"
+                    className="flex-1 bg-inputBg border border-divider px-4 py-3 text-xs text-primaryText font-mono uppercase focus:border-secondaryText focus:outline-none rounded-none"
                   />
                   <button
                     onClick={() => {
@@ -799,7 +800,7 @@ export default function App({ onBack }: AppProps) {
                       setIsCameraActive(true);
                     }}
                     disabled={isScanning || !scanCodeInput}
-                    className="bg-[#FF8000] text-white px-5 py-3 rounded-lg text-sm font-bold shadow hover:bg-[#E07000] transition-colors disabled:opacity-50"
+                    className="bg-[#FF8000] text-canvas px-5 py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {isScanning ? 'Procesando...' : 'Escanear / Validar'}
                   </button>
@@ -809,67 +810,67 @@ export default function App({ onBack }: AppProps) {
 
             {/* Validation Result Screen */}
             {scannedResult && (
-              <div className={`border rounded-2xl p-6 shadow-md animate-fade-in ${
+              <div className={`border p-6 shadow-md rounded-none animate-fade-in ${
                 scannedResult.status === 'accredited' 
-                  ? 'bg-emerald-50/70 border-emerald-200' 
-                  : 'bg-amber-50/70 border-amber-200'
+                  ? 'bg-surface border-emerald-500/30' 
+                  : 'bg-surface border-amber-500/30'
               }`}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className={`text-lg font-black ${
-                      scannedResult.status === 'accredited' ? 'text-emerald-950' : 'text-amber-950'
+                    <h3 className={`text-sm font-semibold uppercase tracking-tight font-sans ${
+                      scannedResult.status === 'accredited' ? 'text-emerald-400' : 'text-amber-400'
                     }`}>
-                      {scannedResult.status === 'accredited' ? '✅ ACREDITADO CON ÉXITO' : '⚠️ ATENCIÓN: ENTRADA YA VALIDADA'}
+                      {scannedResult.status === 'accredited' ? '✓ ACREDITADO CON ÉXITO' : '[ATENCIÓN] ENTRADA YA VALIDADA'}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Código: <span className="font-mono font-bold">{scannedResult.registration.ticket_code}</span>
+                    <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">
+                      Código: <span className="font-mono font-bold text-primaryText">{scannedResult.registration.ticket_code}</span>
                     </p>
                   </div>
                   <button 
                     onClick={() => setScannedResult(null)} 
-                    className="text-slate-400 hover:text-slate-600 font-bold"
+                    className="text-secondaryText hover:text-white font-bold font-mono text-xs cursor-pointer"
                   >
                     ✕
                   </button>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-200/50 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="mt-4 pt-4 border-t border-divider space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
-                      <span className="text-xs text-slate-400 block font-semibold">Participante</span>
-                      <span className="font-bold text-slate-900">{scannedResult.registration.buyer_name}</span>
+                      <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Participante</span>
+                      <span className="font-bold text-primaryText">{scannedResult.registration.buyer_name}</span>
                     </div>
                     <div>
-                      <span className="text-xs text-slate-400 block font-semibold">Evento</span>
-                      <span className="font-bold text-slate-900">{scannedResult.registration.events?.name}</span>
+                      <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Evento</span>
+                      <span className="font-bold text-primaryText">{scannedResult.registration.events?.name}</span>
                     </div>
                   </div>
 
                   {/* Associated Products Claim Section */}
-                  <div className="space-y-3 pt-3 border-t border-slate-200/50">
-                    <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                  <div className="space-y-3 pt-3 border-t border-divider">
+                    <h4 className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider">
                       Productos / Combos asociados a entregar:
                     </h4>
 
                     {scannedResult.items.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic">No hay productos o combos asociados a esta entrada.</p>
+                      <p className="text-[10px] text-secondaryText font-mono uppercase italic">No hay productos o combos asociados a esta entrada.</p>
                     ) : (
                       <div className="space-y-2">
                         {scannedResult.items.map(item => (
-                          <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-100">
-                            <div>
-                              <div className="font-bold text-slate-800 text-sm">{item.event_items?.name}</div>
-                              <div className="text-[10px] text-slate-400">{item.event_items?.description || 'Sin descripción'}</div>
+                          <div key={item.id} className="flex justify-between items-center p-3 bg-inputBg border border-divider rounded-none">
+                            <div className="text-left">
+                              <div className="font-bold text-primaryText text-xs">{item.event_items?.name}</div>
+                              <div className="text-[9px] text-secondaryText font-mono mt-0.5">{item.event_items?.description || 'Sin descripción'}</div>
                             </div>
                             <div>
                               {item.status === 'claimed' ? (
-                                <div className="text-xs text-emerald-700 bg-emerald-100 font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                                  ✓ Entregado {item.claimed_at && `(${new Date(item.claimed_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`}
+                                <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-2.5 py-1 rounded-none flex items-center gap-1">
+                                  ✓ Canjeado {item.claimed_at && `(${new Date(item.claimed_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`}
                                 </div>
                               ) : (
                                 <button
                                   onClick={() => handleClaimItem(item.id)}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+                                  className="bg-emerald-600 hover:bg-emerald-500 text-canvas font-mono uppercase font-bold text-[10px] tracking-wider px-3 py-1.5 rounded-none transition-colors cursor-pointer"
                                 >
                                   Entregar Combo / Producto
                                 </button>
@@ -885,11 +886,11 @@ export default function App({ onBack }: AppProps) {
             )}
 
             {scanError && (
-              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 shadow-md flex items-center gap-3 animate-fade-in">
-                <div className="text-3xl">❌</div>
-                <div>
-                  <h3 className="text-rose-950 font-bold text-lg">Error de Validación</h3>
-                  <p className="text-rose-700 text-sm">{scanError}</p>
+              <div className="bg-surface border border-rose-500/30 p-6 shadow-md flex items-center gap-3 animate-fade-in rounded-none">
+                <div className="text-xl">✕</div>
+                <div className="text-left">
+                  <h3 className="text-rose-400 font-sans uppercase font-bold text-sm tracking-tight">Error de Validación</h3>
+                  <p className="text-secondaryText font-mono text-[10px] uppercase mt-1">{scanError}</p>
                 </div>
               </div>
             )}
@@ -901,16 +902,16 @@ export default function App({ onBack }: AppProps) {
         {/* ==================================================================== */}
         {activeTab === 'config' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center border-b border-divider pb-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Catálogo de Eventos</h1>
-                <p className="text-sm text-slate-500">Gestiona los combos, productos y precios asociados a tus eventos</p>
+                <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Catálogo de Eventos</h1>
+                <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Gestiona los combos, productos y precios asociados a tus eventos</p>
               </div>
               <div className="flex gap-3">
                 <select
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="border border-slate-200 px-4 py-2.5 rounded-lg text-sm bg-white font-bold text-slate-700 focus:outline-none focus:border-[#FF8000]"
+                  className="bg-inputBg border border-divider px-4 py-2.5 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer"
                 >
                   {events.map(ev => (
                     <option key={ev.id} value={ev.id}>{ev.name}</option>
@@ -924,42 +925,42 @@ export default function App({ onBack }: AppProps) {
                     }
                     setShowItemModal(true);
                   }}
-                  className="bg-[#FF8000] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-[#E07000] transition-colors flex items-center gap-2"
+                  className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
                 >
-                  🎁 Añadir Producto
+                  Añadir Producto
                 </button>
               </div>
             </div>
 
             {eventItems.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
-                <h3 className="text-lg font-bold text-slate-800">No hay productos en catálogo</h3>
-                <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1">Agrega combos de comida o souvenirs que se puedan asociar a los tickets de este evento.</p>
+              <div className="bg-surface border border-divider p-12 text-center rounded-none">
+                <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans mb-1">No hay productos en catálogo</h3>
+                <p className="text-[10px] text-secondaryText font-mono uppercase max-w-sm mx-auto">Agrega combos de comida o souvenirs que se puedan asociar a los tickets de este evento.</p>
               </div>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-surface border border-divider rounded-none overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <tr className="bg-inputBg border-b border-divider text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider">
                       <th className="px-6 py-4">Nombre del Producto / Combo</th>
                       <th className="px-6 py-4">Precio</th>
                       <th className="px-6 py-4">Descripción</th>
                       <th className="px-6 py-4">Estado</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-divider/55 text-xs text-secondaryText font-sans">
                     {eventItems.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-50/50">
+                      <tr key={item.id} className="hover:bg-inputBg/40">
                         <td className="px-6 py-4">
-                          <span className="font-bold text-slate-900">{item.name}</span>
+                          <span className="font-bold text-primaryText font-sans">{item.name}</span>
                         </td>
-                        <td className="px-6 py-4 font-mono font-bold text-slate-800">
+                        <td className="px-6 py-4 font-mono font-bold text-[#FF8000]">
                           ₲{item.price.toLocaleString('es-PY')}
                         </td>
-                        <td className="px-6 py-4 text-slate-500">{item.description || 'Sin descripción'}</td>
+                        <td className="px-6 py-4 text-secondaryText">{item.description || 'Sin descripción'}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            item.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                          <span className={`px-2 py-0.5 border text-[9px] font-mono font-bold uppercase rounded-none ${
+                            item.is_active ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' : 'bg-inputBg border-divider text-mutedText'
                           }`}>
                             {item.is_active ? 'Activo' : 'Inactivo'}
                           </span>
@@ -975,66 +976,66 @@ export default function App({ onBack }: AppProps) {
       </main>
 
       {/* ==================================================================== */}
-      {/* MODALS */}
+      {/* MODALS / DRAWERS */}
       {/* ==================================================================== */}
 
       {/* CREATE EVENT MODAL (Drawer style) */}
       {showEventModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between border-l border-slate-200 animate-slide-in">
+        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
+          <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
             <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-black text-slate-900">Crear Nuevo Evento</h2>
-                <button onClick={() => setShowEventModal(false)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+              <div className="flex justify-between items-center mb-6 border-b border-divider pb-4">
+                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Crear Nuevo Evento</h2>
+                <button onClick={() => setShowEventModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
               </div>
-              <form onSubmit={handleCreateEvent} className="space-y-4">
+              <form onSubmit={handleCreateEvent} className="space-y-4 text-left">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Nombre del Evento *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Evento *</label>
                   <input
                     type="text"
                     required
                     value={eventForm.name}
                     onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="Ej. Torneo de Invierno 2026"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Fecha del Evento *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Fecha del Evento *</label>
                   <input
                     type="datetime-local"
                     required
                     value={eventForm.date}
                     onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Lugar / Sede *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Lugar / Sede *</label>
                   <input
                     type="text"
                     required
                     value={eventForm.venue}
                     onChange={(e) => setEventForm({ ...eventForm, venue: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="Ej. Polideportivo Central"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Imagen Base del Ticket (Fondo)</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Imagen Base del Ticket (Fondo URL)</label>
                   <input
                     type="text"
                     value={eventForm.base_image_url}
                     onChange={(e) => setEventForm({ ...eventForm, base_image_url: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="URL de imagen de fondo"
                   />
                 </div>
                 <div className="pt-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">Configuración Coordenadas Código QR (JSON)</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block mb-2">Configuración Coordenadas Código QR (JSON)</label>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 block">Posición X</span>
+                      <span className="text-[9px] text-secondaryText block font-mono">Posición X</span>
                       <input
                         type="number"
                         value={eventForm.qr_config.x}
@@ -1042,11 +1043,11 @@ export default function App({ onBack }: AppProps) {
                           ...eventForm, 
                           qr_config: { ...eventForm.qr_config, x: parseInt(e.target.value) || 0 } 
                         })}
-                        className="w-full border border-slate-200 px-2 py-1 rounded text-sm text-center"
+                        className="w-full bg-inputBg border border-divider px-2 py-1 text-center text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 block">Posición Y</span>
+                      <span className="text-[9px] text-secondaryText block font-mono">Posición Y</span>
                       <input
                         type="number"
                         value={eventForm.qr_config.y}
@@ -1054,11 +1055,11 @@ export default function App({ onBack }: AppProps) {
                           ...eventForm, 
                           qr_config: { ...eventForm.qr_config, y: parseInt(e.target.value) || 0 } 
                         })}
-                        className="w-full border border-slate-200 px-2 py-1 rounded text-sm text-center"
+                        className="w-full bg-inputBg border border-divider px-2 py-1 text-center text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] text-slate-400 block">Tamaño</span>
+                      <span className="text-[9px] text-secondaryText block font-mono">Tamaño</span>
                       <input
                         type="number"
                         value={eventForm.qr_config.size}
@@ -1066,7 +1067,7 @@ export default function App({ onBack }: AppProps) {
                           ...eventForm, 
                           qr_config: { ...eventForm.qr_config, size: parseInt(e.target.value) || 0 } 
                         })}
-                        className="w-full border border-slate-200 px-2 py-1 rounded text-sm text-center"
+                        className="w-full bg-inputBg border border-divider px-2 py-1 text-center text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                       />
                     </div>
                   </div>
@@ -1076,13 +1077,13 @@ export default function App({ onBack }: AppProps) {
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowEventModal(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-lg text-sm font-bold transition-colors"
+                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateEvent}
-                className="flex-1 bg-[#FF8000] text-white py-3 rounded-lg text-sm font-bold shadow hover:bg-[#E07000] transition-colors"
+                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Crear Evento
               </button>
@@ -1093,42 +1094,42 @@ export default function App({ onBack }: AppProps) {
 
       {/* ADD ITEM TO CATALOG MODAL */}
       {showItemModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between border-l border-slate-200 animate-slide-in">
+        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
+          <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
             <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-black text-slate-900">Agregar Producto / Combo</h2>
-                <button onClick={() => setShowItemModal(false)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+              <div className="flex justify-between items-center mb-6 border-b border-divider pb-4">
+                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Agregar Producto / Combo</h2>
+                <button onClick={() => setShowItemModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
               </div>
-              <form onSubmit={handleCreateItem} className="space-y-4">
+              <form onSubmit={handleCreateItem} className="space-y-4 text-left">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-semibold">Nombre del Combo *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Combo *</label>
                   <input
                     type="text"
                     required
                     value={itemForm.name}
                     onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="Ej. Combo Hamburguesa + Bebida"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-semibold">Precio (₲) *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Precio (₲) *</label>
                   <input
                     type="number"
                     required
                     value={itemForm.price}
                     onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="Ej. 35000"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-semibold">Descripción</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Descripción</label>
                   <textarea
                     value={itemForm.description}
                     onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="Detalles sobre lo que incluye..."
                     rows={4}
                   />
@@ -1138,13 +1139,13 @@ export default function App({ onBack }: AppProps) {
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowItemModal(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-lg text-sm font-bold transition-colors"
+                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateItem}
-                className="flex-1 bg-[#FF8000] text-white py-3 rounded-lg text-sm font-bold shadow hover:bg-[#E07000] transition-colors"
+                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Añadir Producto
               </button>
@@ -1155,23 +1156,23 @@ export default function App({ onBack }: AppProps) {
 
       {/* EMIT TICKET REGISTRATION MODAL */}
       {showRegModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between border-l border-slate-200 animate-slide-in">
+        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
+          <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
             <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-black text-slate-900">Registrar / Emitir Ticket</h2>
-                <button onClick={() => setShowRegModal(false)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+              <div className="flex justify-between items-center mb-6 border-b border-divider pb-4">
+                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Registrar / Emitir Ticket</h2>
+                <button onClick={() => setShowRegModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
               </div>
-              <form onSubmit={handleCreateRegistration} className="space-y-4">
+              <form onSubmit={handleCreateRegistration} className="space-y-4 text-left">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-semibold">Seleccionar Evento *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Seleccionar Evento *</label>
                   <select
                     value={regForm.event_id || selectedEventId}
                     onChange={(e) => {
                       setRegForm({ ...regForm, event_id: e.target.value });
                       loadEventItems(e.target.value);
                     }}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none font-bold text-slate-700"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer"
                   >
                     {events.map(ev => (
                       <option key={ev.id} value={ev.id}>{ev.name}</option>
@@ -1179,36 +1180,36 @@ export default function App({ onBack }: AppProps) {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-semibold">Nombre del Participante *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Participante *</label>
                   <input
                     type="text"
                     required
                     value={regForm.buyer_name}
                     onChange={(e) => setRegForm({ ...regForm, buyer_name: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="Nombre completo"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block font-semibold">Correo Electrónico *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Correo Electrónico *</label>
                   <input
                     type="email"
                     required
                     value={regForm.buyer_email}
                     onChange={(e) => setRegForm({ ...regForm, buyer_email: e.target.value })}
-                    className="w-full border border-slate-200 px-3 py-2 rounded-lg text-sm bg-slate-50 focus:bg-white focus:outline-none"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
                     placeholder="correo@ejemplo.com"
                   />
                 </div>
 
                 <div className="pt-2">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2 font-semibold">Asociar combos / productos extra:</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block mb-2">Asociar combos / productos extra:</label>
                   {eventItems.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No hay productos en catálogo para este evento.</p>
+                    <p className="text-[10px] text-secondaryText font-mono uppercase italic">No hay productos en catálogo para este evento.</p>
                   ) : (
-                    <div className="space-y-1 max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50">
+                    <div className="space-y-1 max-h-40 overflow-y-auto border border-divider p-2 bg-inputBg rounded-none">
                       {eventItems.map(item => (
-                        <label key={item.id} className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded text-xs cursor-pointer">
+                        <label key={item.id} className="flex items-center gap-2 p-2 hover:bg-divider rounded-none text-xs cursor-pointer">
                           <input
                             type="checkbox"
                             value={item.id}
@@ -1220,10 +1221,10 @@ export default function App({ onBack }: AppProps) {
                                 : regForm.selected_items.filter(id => id !== item.id);
                               setRegForm({ ...regForm, selected_items: updated });
                             }}
-                            className="accent-[#FF8000]"
+                            className="accent-[#FF8000] cursor-pointer"
                           />
-                          <span className="font-bold text-slate-800">{item.name}</span>
-                          <span className="text-slate-400">({item.price.toLocaleString('es-PY')} ₲)</span>
+                          <span className="font-bold text-primaryText">{item.name}</span>
+                          <span className="text-secondaryText">({item.price.toLocaleString('es-PY')} ₲)</span>
                         </label>
                       ))}
                     </div>
@@ -1234,13 +1235,13 @@ export default function App({ onBack }: AppProps) {
             <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setShowRegModal(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-lg text-sm font-bold transition-colors"
+                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateRegistration}
-                className="flex-1 bg-[#FF8000] text-white py-3 rounded-lg text-sm font-bold shadow hover:bg-[#E07000] transition-colors"
+                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Emitir Entrada
               </button>
@@ -1251,26 +1252,26 @@ export default function App({ onBack }: AppProps) {
 
       {/* TICKET VISUAL DESIGNER / PREVIEW OVERLAY */}
       {showTicketDesigner && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-2xl space-y-6 animate-scale-up">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-black text-slate-900">Vista de la Entrada Virtual</h2>
-              <button onClick={() => setShowTicketDesigner(null)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface border border-divider p-6 shadow-2xl w-full max-w-2xl space-y-6 animate-scale-up rounded-none text-primaryText">
+            <div className="flex justify-between items-center border-b border-divider pb-4">
+              <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Vista de la Entrada Virtual</h2>
+              <button onClick={() => setShowTicketDesigner(null)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
             </div>
             
             {/* Canvas ticket rendering */}
-            <div className="flex justify-center">
-              <canvas ref={canvasRef} className="max-w-full rounded-xl border border-slate-200 shadow-sm"></canvas>
+            <div className="flex justify-center bg-canvas p-4 border border-divider rounded-none">
+              <canvas ref={canvasRef} className="max-w-full rounded-none border border-divider bg-canvas shadow-sm"></canvas>
             </div>
 
-            <div className="text-xs text-slate-400 text-center">
+            <div className="text-[10px] text-secondaryText font-mono uppercase text-center">
               El código QR se renderiza dinámicamente superpuesto según las coordenadas configuradas en el evento.
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowTicketDesigner(null)}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                className="bg-inputBg hover:bg-divider text-secondaryText hover:text-white px-4 py-2 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
               >
                 Cerrar Vista
               </button>
