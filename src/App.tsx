@@ -540,20 +540,20 @@ export default function App({ onBack }: AppProps) {
 
         // Compose QR code simulation
         const qrSize = event.qr_config.size || 100;
-        // Transform coords to preview proportions (600x200 canvas scale)
-        const qrX = Math.min(event.qr_config.x || 450, 480);
-        const qrY = Math.min(event.qr_config.y || 40, 80);
+        const qrX = event.qr_config.x ?? 450;
+        const qrY = event.qr_config.y ?? 40;
 
+        // Draw white background block
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(qrX, qrY, qrSize, qrSize);
 
-        // Draw QR patterns
+        // Draw proportional QR nested patterns to ensure correct layout at any size
         ctx.fillStyle = '#08060d';
-        ctx.fillRect(qrX + 10, qrY + 10, qrSize - 20, qrSize - 20);
+        ctx.fillRect(qrX + qrSize * 0.1, qrY + qrSize * 0.1, qrSize * 0.8, qrSize * 0.8);
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(qrX + 25, qrY + 25, qrSize - 50, qrSize - 50);
+        ctx.fillRect(qrX + qrSize * 0.25, qrY + qrSize * 0.25, qrSize * 0.5, qrSize * 0.5);
         ctx.fillStyle = '#08060d';
-        ctx.fillRect(qrX + 35, qrY + 35, qrSize - 70, qrSize - 70);
+        ctx.fillRect(qrX + qrSize * 0.35, qrY + qrSize * 0.35, qrSize * 0.3, qrSize * 0.3);
       };
     }, 100);
   };
@@ -1062,7 +1062,7 @@ export default function App({ onBack }: AppProps) {
       {/* CREATE EVENT MODAL (Drawer style) */}
       {showEventModal && (
         <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-[960px] bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden">
+          <div className="w-full tickets-drawer-wide bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden">
             
             {/* Header */}
             <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
@@ -1073,7 +1073,7 @@ export default function App({ onBack }: AppProps) {
             {/* Scrollable Form Body */}
             <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
               <form onSubmit={handleCreateEvent} className="text-left space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <div className="tickets-drawer-grid-3 items-start">
                   
                   {/* Columna 1: Datos Básicos */}
                   <div className="space-y-4">

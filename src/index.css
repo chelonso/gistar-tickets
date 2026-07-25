@@ -22,3 +22,21 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Custom Event Creator Drawer layout (Option 2 - Native CSS grid/dimensions) */
+.tickets-drawer-wide {
+  width: 100% !important;
+  max-width: 960px !important;
+}
+
+.tickets-drawer-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .tickets-drawer-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
