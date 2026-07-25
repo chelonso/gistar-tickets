@@ -1073,7 +1073,7 @@ export default function App({ onBack }: AppProps) {
             {/* Scrollable Form Body */}
             <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
               <form onSubmit={handleCreateEvent} className="text-left space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="grid grid-cols-3 gap-8 items-start">
                   
                   {/* Columna 1: Datos Básicos */}
                   <div className="space-y-4">
