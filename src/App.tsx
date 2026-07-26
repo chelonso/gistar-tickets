@@ -393,9 +393,9 @@ export default function App({ onBack }: AppProps) {
     }
   };
 
-  // Set default JSON when opening the modal
+  // Set default JSON when opening the modal (only for new events)
   useEffect(() => {
-    if (showEventModal) {
+    if (showEventModal && !eventForm.id) {
       const initialJson = {
         qr: { x: 450, y: 40, size: 100 },
         code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
@@ -408,7 +408,93 @@ export default function App({ onBack }: AppProps) {
       setJsonEditorText(JSON.stringify(initialJson, null, 2));
       setJsonError(null);
     }
-  }, [showEventModal]);
+  }, [showEventModal, eventForm.id]);
+
+  const handleOpenEditModal = (event: Event) => {
+    // Convert YYYY-MM-DDTHH:MM:SS.SSSZ to datetime-local expected input format: YYYY-MM-DDTHH:MM
+    let dateVal = '';
+    if (event.date) {
+      dateVal = event.date.substring(0, 16);
+    }
+    setEventForm({
+      id: event.id,
+      name: event.name,
+      date: dateVal,
+      venue: event.venue,
+      base_image_url: event.base_image_url || '',
+      qr_config: event.qr_config
+    });
+    setJsonEditorText(JSON.stringify(event.qr_config, null, 2));
+    setJsonError(null);
+    setShowEventModal(true);
+  };
+
+  const handleCloseEventModal = () => {
+    setShowEventModal(false);
+    setEventForm({
+      id: undefined,
+      name: '',
+      date: '',
+      venue: '',
+      base_image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60',
+      qr_config: {
+        qr: { x: 450, y: 40, size: 100 },
+        code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
+        name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+      }
+    });
+    setJsonEditorText('');
+    setJsonError(null);
+  };
+
+  const handleUpdateEvent = async (eventId: string) => {
+    if (!eventForm.name || !eventForm.date || !eventForm.venue) {
+      showToast('Por favor completa todos los campos obligatorios', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${gatewayUrl}/rest/v1/events?id=eq.${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          name: eventForm.name,
+          date: new Date(eventForm.date).toISOString(),
+          venue: eventForm.venue,
+          base_image_url: eventForm.base_image_url || null,
+          qr_config: eventForm.qr_config
+        }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        showToast('Evento actualizado exitosamente', 'success');
+        setShowEventModal(false);
+        setEventForm({
+          id: undefined,
+          name: '',
+          date: '',
+          venue: '',
+          base_image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60',
+          qr_config: {
+            qr: { x: 450, y: 40, size: 100 },
+            code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
+            name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+          }
+        });
+        setJsonEditorText('');
+        setJsonError(null);
+        await loadEvents();
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch (err: any) {
+      showToast('Error al actualizar evento: ' + err.message, 'error');
+    }
+  };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -445,8 +531,14 @@ export default function App({ onBack }: AppProps) {
           date: '',
           venue: '',
           base_image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60',
-          qr_config: { x: 450, y: 150, size: 120 }
+          qr_config: {
+            qr: { x: 450, y: 40, size: 100 },
+            code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
+            name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+          }
         });
+        setJsonEditorText('');
+        setJsonError(null);
         await loadEvents();
       } else {
         throw new Error(await res.text());
@@ -888,7 +980,16 @@ export default function App({ onBack }: AppProps) {
                           onClick={() => handleDrawTicket(event, 'TEST-123456')}
                           className="flex-1 text-center bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white py-2 rounded-none font-mono uppercase text-[10px] tracking-wider transition-colors cursor-pointer"
                         >
-                          Ver Entrada (QR)
+                          Ver Entrada
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditModal(event)}
+                          className="px-3 py-2 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white rounded-none transition-colors cursor-pointer flex items-center justify-center"
+                          title="Editar Entrada (Diseño)"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => {
@@ -1249,13 +1350,13 @@ export default function App({ onBack }: AppProps) {
             
             {/* Header */}
             <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
-              <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Crear Nuevo Evento</h2>
-              <button onClick={() => setShowEventModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
+              <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">{eventForm.id ? 'Editar Evento' : 'Crear Nuevo Evento'}</h2>
+              <button onClick={handleCloseEventModal} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
             </div>
 
             {/* Scrollable Form Body */}
             <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
-              <form onSubmit={handleCreateEvent} className="text-left space-y-6">
+              <form onSubmit={(e) => { e.preventDefault(); if (eventForm.id) { handleUpdateEvent(eventForm.id); } else { handleCreateEvent(e); } }} className="text-left space-y-6">
                 <div className="tickets-drawer-grid-3 items-start">
                   
                   {/* Columna 1: Datos Básicos */}
@@ -1430,27 +1531,30 @@ export default function App({ onBack }: AppProps) {
               </form>
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex gap-3 mt-8 shrink-0 pt-4 border-t border-divider">
-              <button
-                onClick={() => setShowEventModal(false)}
-                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handlePreviewNewTicket}
-                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText hover:text-white rounded-none border border-divider font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
-              >
-                Previsualizar
-              </button>
-              <button
-                onClick={handleCreateEvent}
-                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
-              >
-                Crear Evento
-              </button>
-            </div>
+             {/* Footer Buttons */}
+             <div className="flex gap-3 mt-8 shrink-0 pt-4 border-t border-divider">
+               <button
+                 type="button"
+                 onClick={handleCloseEventModal}
+                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 Cancelar
+               </button>
+               <button
+                 type="button"
+                 onClick={handlePreviewNewTicket}
+                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText hover:text-white rounded-none border border-divider font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 Previsualizar
+               </button>
+               <button
+                 type="button"
+                 onClick={(e) => { e.preventDefault(); if (eventForm.id) { handleUpdateEvent(eventForm.id); } else { handleCreateEvent(e); } }}
+                 className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 {eventForm.id ? 'Guardar Cambios' : 'Crear Evento'}
+               </button>
+             </div>
 
           </div>
         </div>
