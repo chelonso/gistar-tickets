@@ -115,6 +115,64 @@ export default function App({ onBack }: AppProps) {
 
   // Canvas ref for composition preview
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Auto-draw live preview inside the drawer when inputs change
+  useEffect(() => {
+    if (!showEventModal || !eventForm.base_image_url || !drawerCanvasRef.current) return;
+
+    const canvas = drawerCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = eventForm.base_image_url;
+
+    img.onload = () => {
+      const imgWidth = img.naturalWidth || 600;
+      const imgHeight = img.naturalHeight || 200;
+      
+      canvas.width = imgWidth;
+      canvas.height = imgHeight;
+      
+      ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+      // Draw Ticket Code with proportional font size and positioning
+      const fontSize = Math.max(14, Math.round(imgHeight * 0.08));
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${fontSize}px Courier New`;
+      ctx.fillText('COD: PREVIEW-000000', imgWidth * 0.05, imgHeight * 0.88);
+      ctx.fillText((eventForm.name || 'EVENTO DE PRUEBA').toUpperCase(), imgWidth * 0.05, imgHeight * 0.22);
+
+      // Compose QR code simulation
+      const qrSize = Number(eventForm.qr_config.size) || 100;
+      const qrX = Number(eventForm.qr_config.x ?? (imgWidth - qrSize - 30));
+      const qrY = Number(eventForm.qr_config.y ?? (imgHeight - qrSize - 30));
+
+      // Draw white background block
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(qrX, qrY, qrSize, qrSize);
+
+      // Draw proportional QR nested patterns to ensure correct layout at any size
+      ctx.fillStyle = '#08060d';
+      ctx.fillRect(qrX + qrSize * 0.1, qrY + qrSize * 0.1, qrSize * 0.8, qrSize * 0.8);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(qrX + qrSize * 0.25, qrY + qrSize * 0.25, qrSize * 0.5, qrSize * 0.5);
+      ctx.fillStyle = '#08060d';
+      ctx.fillRect(qrX + qrSize * 0.35, qrY + qrSize * 0.35, qrSize * 0.3, qrSize * 0.3);
+    };
+    img.onerror = () => {
+      // In case of CORS blocks or load errors, clear canvas or draw fallback text
+      canvas.width = 600;
+      canvas.height = 100;
+      ctx.fillStyle = '#18191E';
+      ctx.fillRect(0, 0, 600, 100);
+      ctx.fillStyle = '#8F919A';
+      ctx.font = '10px Courier New';
+      ctx.fillText('FALLO AL CARGAR IMAGEN PARA PREVISUALIZACION LIVE', 30, 50);
+    };
+  }, [showEventModal, eventForm.base_image_url, eventForm.name, eventForm.qr_config.x, eventForm.qr_config.y, eventForm.qr_config.size]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
@@ -527,21 +585,26 @@ export default function App({ onBack }: AppProps) {
       img.src = event.base_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60';
       
       img.onload = () => {
-        // Match canvas dimensions to image size
-        canvas.width = 600;
-        canvas.height = 200;
-        ctx.drawImage(img, 0, 0, 600, 200);
+        // Match canvas dimensions to the natural dimensions of the uploaded ticket background image
+        const imgWidth = img.naturalWidth || 600;
+        const imgHeight = img.naturalHeight || 200;
+        
+        canvas.width = imgWidth;
+        canvas.height = imgHeight;
+        
+        ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
 
-        // Draw Ticket Code
+        // Draw Ticket Code with proportional font size and positioning
+        const fontSize = Math.max(14, Math.round(imgHeight * 0.08));
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 16px Courier New';
-        ctx.fillText(`COD: ${ticketCode}`, 30, 175);
-        ctx.fillText(event.name.toUpperCase(), 30, 45);
+        ctx.font = `bold ${fontSize}px Courier New`;
+        ctx.fillText(`COD: ${ticketCode}`, imgWidth * 0.05, imgHeight * 0.88);
+        ctx.fillText(event.name.toUpperCase(), imgWidth * 0.05, imgHeight * 0.22);
 
         // Compose QR code simulation
         const qrSize = event.qr_config.size || 100;
-        const qrX = event.qr_config.x ?? 450;
-        const qrY = event.qr_config.y ?? 40;
+        const qrX = event.qr_config.x ?? (imgWidth - qrSize - 30);
+        const qrY = event.qr_config.y ?? (imgHeight - qrSize - 30);
 
         // Draw white background block
         ctx.fillStyle = '#FFFFFF';
@@ -1185,6 +1248,20 @@ export default function App({ onBack }: AppProps) {
                           placeholder="https://ejemplo.com/imagen.jpg"
                         />
                       </div>
+
+                      {/* Live Canvas Preview inside the Drawer (Updates in real time as X, Y, Size are modified) */}
+                      {eventForm.base_image_url && (
+                        <div className="pt-3 space-y-1.5 text-left">
+                          <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Previsualización Live del Ticket</label>
+                          <div className="flex justify-center bg-canvas p-2 border border-divider rounded-none">
+                            <canvas 
+                              ref={drawerCanvasRef} 
+                              className="max-w-full rounded-none border border-divider bg-canvas shadow-sm"
+                              style={{ maxHeight: '120px', objectFit: 'contain' }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
