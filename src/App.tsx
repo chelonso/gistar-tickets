@@ -9,7 +9,7 @@ interface Event {
   date: string;
   venue: string;
   base_image_url: string | null;
-  qr_config: { x: number; y: number; size: number };
+  qr_config: any;
   created_at: string;
 }
 
@@ -81,6 +81,8 @@ export default function App({ onBack }: AppProps) {
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [jsonEditorText, setJsonEditorText] = useState<string>('');
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   // Forms
   const [eventForm, setEventForm] = useState<{
@@ -89,13 +91,17 @@ export default function App({ onBack }: AppProps) {
     date: string;
     venue: string;
     base_image_url: string;
-    qr_config: { x: number; y: number; size: number };
+    qr_config: any;
   }>({
     name: '',
     date: '',
     venue: '',
     base_image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60',
-    qr_config: { x: 450, y: 150, size: 120 }
+    qr_config: {
+      qr: { x: 450, y: 40, size: 100 },
+      code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
+      name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+    }
   });
 
   const [itemForm, setItemForm] = useState({
@@ -367,15 +373,42 @@ export default function App({ onBack }: AppProps) {
       date: eventForm.date || new Date().toISOString(),
       venue: eventForm.venue || 'SEDE DE PRUEBA',
       base_image_url: eventForm.base_image_url,
-      qr_config: {
-        x: eventForm.qr_config.x,
-        y: eventForm.qr_config.y,
-        size: eventForm.qr_config.size,
-      },
+      qr_config: eventForm.qr_config,
       created_at: new Date().toISOString()
     };
     handleDrawTicket(simulatedEvent, 'PREVIEW-000000');
   };
+
+  const handleJsonChange = (val: string) => {
+    setJsonEditorText(val);
+    try {
+      const parsed = JSON.parse(val);
+      setEventForm(prev => ({
+        ...prev,
+        qr_config: parsed
+      }));
+      setJsonError(null);
+    } catch (err: any) {
+      setJsonError(err.message);
+    }
+  };
+
+  // Set default JSON when opening the modal
+  useEffect(() => {
+    if (showEventModal) {
+      const initialJson = {
+        qr: { x: 450, y: 40, size: 100 },
+        code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
+        name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+      };
+      setEventForm(prev => ({
+        ...prev,
+        qr_config: initialJson
+      }));
+      setJsonEditorText(JSON.stringify(initialJson, null, 2));
+      setJsonError(null);
+    }
+  }, [showEventModal]);
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -632,17 +665,35 @@ export default function App({ onBack }: AppProps) {
         
         ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
 
-        // Draw Ticket Code with proportional font size and positioning
-        const fontSize = Math.max(14, Math.round(imgHeight * 0.08));
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${fontSize}px Courier New`;
-        ctx.fillText(`COD: ${ticketCode}`, imgWidth * 0.05, imgHeight * 0.88);
-        ctx.fillText(event.name.toUpperCase(), imgWidth * 0.05, imgHeight * 0.22);
+        // Parse JSON config sections with safe fallbacks (backwards compatible)
+        const qrConfig = event.qr_config?.qr || {};
+        const codeConfig = event.qr_config?.code || {};
+        const nameConfig = event.qr_config?.name || {};
+
+        // Draw Ticket Code Text
+        const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        const codeColor = codeConfig.color || '#FFFFFF';
+        const codeX = Number(codeConfig.x) ?? (imgWidth * 0.05);
+        const codeY = Number(codeConfig.y) ?? (imgHeight * 0.88);
+
+        ctx.fillStyle = codeColor;
+        ctx.font = `bold ${codeSize}px Courier New`;
+        ctx.fillText(`COD: ${ticketCode}`, codeX, codeY);
+
+        // Draw Event Name Text
+        const nameSize = Number(nameConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        const nameColor = nameConfig.color || '#FFFFFF';
+        const nameX = Number(nameConfig.x) ?? (imgWidth * 0.05);
+        const nameY = Number(nameConfig.y) ?? (imgHeight * 0.22);
+
+        ctx.fillStyle = nameColor;
+        ctx.font = `bold ${nameSize}px Courier New`;
+        ctx.fillText(event.name.toUpperCase(), nameX, nameY);
 
         // Compose QR code simulation
-        const qrSize = Number(event.qr_config.size) || 100;
-        const qrX = Number(event.qr_config.x ?? (imgWidth - qrSize - 30));
-        const qrY = Number(event.qr_config.y ?? (imgHeight - qrSize - 30));
+        const qrSize = Number(qrConfig.size || event.qr_config?.size) || 100;
+        const qrX = Number(qrConfig.x ?? event.qr_config?.x ?? (imgWidth - qrSize - 30));
+        const qrY = Number(qrConfig.y ?? event.qr_config?.y ?? (imgHeight - qrSize - 30));
 
         // Draw white background block (quiet zone)
         ctx.fillStyle = '#FFFFFF';
@@ -1334,51 +1385,43 @@ export default function App({ onBack }: AppProps) {
                     </div>
                   </div>
 
-                  {/* Columna 3: Coordenadas del QR */}
+                  {/* Columna 3: Configuración Avanzada JSON */}
                   <div className="space-y-4">
                     <h3 className="text-[10px] font-mono font-bold text-accentBlue uppercase tracking-wider border-b border-divider pb-2 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-accentBlue"></span>
-                      Coordenadas del QR
+                      Configuración del Ticket (JSON)
                     </h3>
                     
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Posición Horizontal (X px)</label>
-                        <input
-                          type="number"
-                          value={eventForm.qr_config.x}
-                          onChange={(e) => setEventForm({ 
-                            ...eventForm, 
-                            qr_config: { ...eventForm.qr_config, x: parseInt(e.target.value) || 0 } 
-                          })}
-                          className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                        />
-                      </div>
+                    <div className="space-y-3 text-left">
+                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
+                        JSON del QR y Textos
+                      </label>
+                      <textarea
+                        value={jsonEditorText}
+                        onChange={(e) => handleJsonChange(e.target.value)}
+                        className="w-full bg-canvas border border-divider p-3 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none custom-scrollbar"
+                        rows={14}
+                        placeholder="{}"
+                      />
+                      {jsonError ? (
+                        <span className="text-[8px] font-mono text-red-500 uppercase tracking-wider block">
+                          ✗ JSON Inválido: {jsonError}
+                        </span>
+                      ) : (
+                        <span className="text-[8px] font-mono text-emerald-400 uppercase tracking-wider block">
+                          ✓ JSON Válido y Vinculado
+                        </span>
+                      )}
                       
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Posición Vertical (Y px)</label>
-                        <input
-                          type="number"
-                          value={eventForm.qr_config.y}
-                          onChange={(e) => setEventForm({ 
-                            ...eventForm, 
-                            qr_config: { ...eventForm.qr_config, y: parseInt(e.target.value) || 0 } 
-                          })}
-                          className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                        />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Tamaño del QR (px)</label>
-                        <input
-                          type="number"
-                          value={eventForm.qr_config.size}
-                          onChange={(e) => setEventForm({ 
-                            ...eventForm, 
-                            qr_config: { ...eventForm.qr_config, size: parseInt(e.target.value) || 0 } 
-                          })}
-                          className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
-                        />
+                      <div className="bg-inputBg border border-divider p-3 text-[8.5px] font-mono text-mutedText space-y-1">
+                        <span className="block font-bold text-secondaryText uppercase tracking-wide">Esquema Recomendado:</span>
+                        <pre className="text-[7.5px] text-secondaryText overflow-x-auto">
+{`{
+  "qr": { "x": 450, "y": 40, "size": 100 },
+  "code": { "x": 30, "y": 175, "size": 16, "color": "#FFFFFF" },
+  "name": { "x": 30, "y": 45, "size": 16, "color": "#FFFFFF" }
+}`}
+                        </pre>
                       </div>
                     </div>
                   </div>
