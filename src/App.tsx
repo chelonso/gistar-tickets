@@ -150,17 +150,55 @@ export default function App({ onBack }: AppProps) {
       const qrX = Number(eventForm.qr_config.x ?? (imgWidth - qrSize - 30));
       const qrY = Number(eventForm.qr_config.y ?? (imgHeight - qrSize - 30));
 
-      // Draw white background block
+      // Draw white background block (quiet zone)
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(qrX, qrY, qrSize, qrSize);
 
-      // Draw proportional QR nested patterns to ensure correct layout at any size
+      // Draw simulated QR code data modules (random-looking small blocks)
       ctx.fillStyle = '#08060d';
-      ctx.fillRect(qrX + qrSize * 0.1, qrY + qrSize * 0.1, qrSize * 0.8, qrSize * 0.8);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(qrX + qrSize * 0.25, qrY + qrSize * 0.25, qrSize * 0.5, qrSize * 0.5);
-      ctx.fillStyle = '#08060d';
-      ctx.fillRect(qrX + qrSize * 0.35, qrY + qrSize * 0.35, qrSize * 0.3, qrSize * 0.3);
+      const cellSize = Math.max(2, Math.round(qrSize / 20)); // 20x20 cell grid
+      const padding = Math.max(4, Math.round(qrSize * 0.05)); // 5% padding
+      
+      for (let r = 0; r < 20; r++) {
+        for (let c = 0; c < 20; c++) {
+          // Avoid drawing in the three corner finder patterns (top-left, top-right, bottom-left)
+          const isTopLeft = r < 7 && c < 7;
+          const isTopRight = r < 7 && c >= 13;
+          const isBottomLeft = r >= 13 && c < 7;
+          
+          if (!isTopLeft && !isTopRight && !isBottomLeft) {
+            // Draw pseudo-random noise
+            if (Math.sin(r * 12.9898 + c * 78.233) * 43758.5453 % 1 > 0.45) {
+              ctx.fillRect(
+                qrX + padding + c * ((qrSize - padding * 2) / 20),
+                qrY + padding + r * ((qrSize - padding * 2) / 20),
+                cellSize,
+                cellSize
+              );
+            }
+          }
+        }
+      }
+
+      // Draw 3 Corner Finder Patterns (Position Detection Patterns)
+      const drawFinder = (fx: number, fy: number, size: number) => {
+        ctx.fillStyle = '#08060d';
+        ctx.fillRect(fx, fy, size, size);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(fx + size * (1/7), fy + size * (1/7), size * (5/7), size * (5/7));
+        ctx.fillStyle = '#08060d';
+        ctx.fillRect(fx + size * (2/7), fy + size * (2/7), size * (3/7), size * (3/7));
+      };
+
+      const finderSize = Math.round(qrSize * 0.3); // 30% of QR size
+      const innerPadding = padding;
+
+      // Top-Left
+      drawFinder(qrX + innerPadding, qrY + innerPadding, finderSize);
+      // Top-Right
+      drawFinder(qrX + qrSize - finderSize - innerPadding, qrY + innerPadding, finderSize);
+      // Bottom-Left
+      drawFinder(qrX + innerPadding, qrY + qrSize - finderSize - innerPadding, finderSize);
     };
     img.onerror = () => {
       // In case of CORS blocks or load errors, clear canvas or draw fallback text
@@ -602,21 +640,59 @@ export default function App({ onBack }: AppProps) {
         ctx.fillText(event.name.toUpperCase(), imgWidth * 0.05, imgHeight * 0.22);
 
         // Compose QR code simulation
-        const qrSize = event.qr_config.size || 100;
-        const qrX = event.qr_config.x ?? (imgWidth - qrSize - 30);
-        const qrY = event.qr_config.y ?? (imgHeight - qrSize - 30);
+        const qrSize = Number(event.qr_config.size) || 100;
+        const qrX = Number(event.qr_config.x ?? (imgWidth - qrSize - 30));
+        const qrY = Number(event.qr_config.y ?? (imgHeight - qrSize - 30));
 
-        // Draw white background block
+        // Draw white background block (quiet zone)
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(qrX, qrY, qrSize, qrSize);
 
-        // Draw proportional QR nested patterns to ensure correct layout at any size
+        // Draw simulated QR code data modules (random-looking small blocks)
         ctx.fillStyle = '#08060d';
-        ctx.fillRect(qrX + qrSize * 0.1, qrY + qrSize * 0.1, qrSize * 0.8, qrSize * 0.8);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(qrX + qrSize * 0.25, qrY + qrSize * 0.25, qrSize * 0.5, qrSize * 0.5);
-        ctx.fillStyle = '#08060d';
-        ctx.fillRect(qrX + qrSize * 0.35, qrY + qrSize * 0.35, qrSize * 0.3, qrSize * 0.3);
+        const cellSize = Math.max(2, Math.round(qrSize / 20)); // 20x20 cell grid
+        const padding = Math.max(4, Math.round(qrSize * 0.05)); // 5% padding
+        
+        for (let r = 0; r < 20; r++) {
+          for (let c = 0; c < 20; c++) {
+            // Avoid drawing in the three corner finder patterns (top-left, top-right, bottom-left)
+            const isTopLeft = r < 7 && c < 7;
+            const isTopRight = r < 7 && c >= 13;
+            const isBottomLeft = r >= 13 && c < 7;
+            
+            if (!isTopLeft && !isTopRight && !isBottomLeft) {
+              // Draw pseudo-random noise
+              if (Math.sin(r * 12.9898 + c * 78.233) * 43758.5453 % 1 > 0.45) {
+                ctx.fillRect(
+                  qrX + padding + c * ((qrSize - padding * 2) / 20),
+                  qrY + padding + r * ((qrSize - padding * 2) / 20),
+                  cellSize,
+                  cellSize
+                );
+              }
+            }
+          }
+        }
+
+        // Draw 3 Corner Finder Patterns (Position Detection Patterns)
+        const drawFinder = (fx: number, fy: number, size: number) => {
+          ctx.fillStyle = '#08060d';
+          ctx.fillRect(fx, fy, size, size);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(fx + size * (1/7), fy + size * (1/7), size * (5/7), size * (5/7));
+          ctx.fillStyle = '#08060d';
+          ctx.fillRect(fx + size * (2/7), fy + size * (2/7), size * (3/7), size * (3/7));
+        };
+
+        const finderSize = Math.round(qrSize * 0.3); // 30% of QR size
+        const innerPadding = padding;
+
+        // Top-Left
+        drawFinder(qrX + innerPadding, qrY + innerPadding, finderSize);
+        // Top-Right
+        drawFinder(qrX + qrSize - finderSize - innerPadding, qrY + innerPadding, finderSize);
+        // Bottom-Left
+        drawFinder(qrX + innerPadding, qrY + qrSize - finderSize - innerPadding, finderSize);
       };
     }, 100);
   };
@@ -736,25 +812,18 @@ export default function App({ onBack }: AppProps) {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {events.map(event => (
-                  <div key={event.id} className="bg-surface border border-divider rounded-none overflow-hidden relative flex flex-col justify-between min-h-[260px] group hover:bg-[#18191E]/60 transition-all">
+                  <div key={event.id} className="bg-surface border border-divider rounded-none overflow-hidden relative flex flex-col justify-between min-h-[150px] group hover:bg-[#18191E]/60 transition-all">
                     {/* Top color stripe */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-[#FF8000]"></div>
                     
-                    <div className="h-32 bg-inputBg relative overflow-hidden">
-                      <img 
-                        src={event.base_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60'} 
-                        alt={event.name} 
-                        className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-300"
-                      />
-                      <div className="absolute bottom-2 left-2">
-                        <span className="text-[9px] font-mono uppercase tracking-wider bg-canvas/80 text-accentSand px-2 py-0.5 border border-divider rounded-none">
-                          {new Date(event.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-                    </div>
                     <div className="p-5 flex-grow flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans line-clamp-1">{event.name}</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start gap-4">
+                          <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans line-clamp-2 flex-grow">{event.name}</h3>
+                          <span className="shrink-0 text-[8px] font-mono uppercase tracking-wider bg-[#FF8000]/10 text-[#FF8000] px-2 py-0.5 border border-[#FF8000]/30 rounded-none">
+                            {new Date(event.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
                         <p className="text-[10px] text-secondaryText font-mono uppercase mt-1 flex items-center gap-1.5">
                           <svg className="w-3.5 h-3.5 text-mutedText" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -1502,28 +1571,56 @@ export default function App({ onBack }: AppProps) {
         </div>
       )}
 
-      {/* TICKET VISUAL DESIGNER / PREVIEW OVERLAY */}
+      {/* TICKET VISUAL DESIGNER / PREVIEW OVERLAY (Drawer style) */}
       {showTicketDesigner && (
-        <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-divider p-6 shadow-2xl w-full max-w-2xl space-y-6 animate-scale-up rounded-none text-primaryText">
-            <div className="flex justify-between items-center border-b border-divider pb-4">
-              <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Vista de la Entrada Virtual</h2>
-              <button onClick={() => setShowTicketDesigner(null)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
+        <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setShowTicketDesigner(null)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs animate-fade-in" 
+          />
+          
+          {/* Drawer Panel */}
+          <div className="relative bg-surface w-full tickets-drawer-wide border-l border-divider flex flex-col h-full z-10 shadow-2xl animate-slide-in text-primaryText text-left">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-divider flex justify-between items-center bg-inputBg shrink-0">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.12em] text-primaryText">Vista de la Entrada Virtual</h3>
+              <button 
+                onClick={() => setShowTicketDesigner(null)} 
+                className="text-secondaryText hover:text-primaryText p-1 cursor-pointer transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             
-            {/* Canvas ticket rendering */}
-            <div className="flex justify-center bg-canvas p-4 border border-divider rounded-none">
-              <canvas ref={canvasRef} className="max-w-full rounded-none border border-divider bg-canvas shadow-sm"></canvas>
+            {/* Drawer Body */}
+            <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar flex flex-col justify-center bg-canvas">
+              {/* Canvas ticket rendering */}
+              <div className="flex justify-center bg-canvas p-4 border border-divider rounded-none">
+                <canvas 
+                  ref={canvasRef} 
+                  className="max-w-full rounded-none border border-divider bg-canvas shadow-sm"
+                  style={{ 
+                    maxHeight: 'calc(100vh - 240px)', // Restricts canvas height to fit viewport
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+              
+              <div className="text-[10px] text-secondaryText font-mono uppercase text-center">
+                El código QR se renderiza dinámicamente superpuesto según las coordenadas configuradas en el evento.
+              </div>
             </div>
-
-            <div className="text-[10px] text-secondaryText font-mono uppercase text-center">
-              El código QR se renderiza dinámicamente superpuesto según las coordenadas configuradas en el evento.
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
+            
+            {/* Drawer Footer */}
+            <div className="p-6 border-t border-divider flex justify-end bg-inputBg shrink-0">
               <button
                 onClick={() => setShowTicketDesigner(null)}
-                className="bg-inputBg hover:bg-divider text-secondaryText hover:text-white px-4 py-2 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
+                className="bg-inputBg hover:bg-divider text-secondaryText hover:text-white px-6 py-2.5 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer border border-divider"
               >
                 Cerrar Vista
               </button>
