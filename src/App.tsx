@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
+import QRCode from 'qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 // API gateway base URL
 const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
@@ -123,6 +125,7 @@ export default function App({ onBack }: AppProps) {
   // Canvas ref for composition preview
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const qrScannerRef = useRef<Html5Qrcode | null>(null);
 
   // Auto-draw live preview inside the drawer when inputs change
   useEffect(() => {
@@ -152,60 +155,22 @@ export default function App({ onBack }: AppProps) {
       ctx.fillText('COD: PREVIEW-000000', imgWidth * 0.05, imgHeight * 0.88);
       ctx.fillText((eventForm.name || 'EVENTO DE PRUEBA').toUpperCase(), imgWidth * 0.05, imgHeight * 0.22);
 
-      // Compose QR code simulation
+      // Compose QR code using qrcode package for live preview
       const qrSize = Number(eventForm.qr_config.size) || 100;
       const qrX = Number(eventForm.qr_config.x ?? (imgWidth - qrSize - 30));
       const qrY = Number(eventForm.qr_config.y ?? (imgHeight - qrSize - 30));
 
-      // Draw white background block (quiet zone)
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(qrX, qrY, qrSize, qrSize);
-
-      // Draw simulated QR code data modules (random-looking small blocks)
-      ctx.fillStyle = '#08060d';
-      const cellSize = Math.max(2, Math.round(qrSize / 20)); // 20x20 cell grid
-      const padding = Math.max(4, Math.round(qrSize * 0.05)); // 5% padding
-      
-      for (let r = 0; r < 20; r++) {
-        for (let c = 0; c < 20; c++) {
-          // Avoid drawing in the three corner finder patterns (top-left, top-right, bottom-left)
-          const isTopLeft = r < 7 && c < 7;
-          const isTopRight = r < 7 && c >= 13;
-          const isBottomLeft = r >= 13 && c < 7;
-          
-          if (!isTopLeft && !isTopRight && !isBottomLeft) {
-            // Draw pseudo-random noise
-            if (Math.sin(r * 12.9898 + c * 78.233) * 43758.5453 % 1 > 0.45) {
-              ctx.fillRect(
-                qrX + padding + c * ((qrSize - padding * 2) / 20),
-                qrY + padding + r * ((qrSize - padding * 2) / 20),
-                cellSize,
-                cellSize
-              );
-            }
-          }
-        }
-      }
-
-      // Draw 3 Corner Finder Patterns (Position Detection Patterns)
-      const drawFinder = (fx: number, fy: number, size: number) => {
-        ctx.fillStyle = '#08060d';
-        ctx.fillRect(fx, fy, size, size);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(fx + size * (1/7), fy + size * (1/7), size * (5/7), size * (5/7));
-        ctx.fillStyle = '#08060d';
-        ctx.fillRect(fx + size * (2/7), fy + size * (2/7), size * (3/7), size * (3/7));
-      };
-
-      const finderSize = Math.round(qrSize * 0.3); // 30% of QR size
-      const innerPadding = padding;
-
-      // Top-Left
-      drawFinder(qrX + innerPadding, qrY + innerPadding, finderSize);
-      // Top-Right
-      drawFinder(qrX + qrSize - finderSize - innerPadding, qrY + innerPadding, finderSize);
-      // Bottom-Left
-      drawFinder(qrX + innerPadding, qrY + qrSize - finderSize - innerPadding, finderSize);
+      QRCode.toDataURL('PREVIEW-000000', { margin: 1, color: { dark: '#08060d', light: '#FFFFFF' } })
+        .then(qrDataUrl => {
+          const qrImg = new Image();
+          qrImg.src = qrDataUrl;
+          qrImg.onload = () => {
+            ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+          };
+        })
+        .catch(err => {
+          console.error('Error generating preview QR:', err);
+        });
     };
     img.onerror = () => {
       // In case of CORS blocks or load errors, clear canvas or draw fallback text
@@ -281,6 +246,57 @@ export default function App({ onBack }: AppProps) {
       return mockTenant;
     }
   };
+
+  // Camera scanner lifecycle hook
+  useEffect(() => {
+    if (activeTab !== 'scanner' || !isCameraActive) {
+      if (qrScannerRef.current && qrScannerRef.current.isScanning) {
+        qrScannerRef.current.stop()
+          .then(() => {
+            qrScannerRef.current = null;
+          })
+          .catch(err => console.error('Error stopping scanner:', err));
+      }
+      return;
+    }
+
+    // Wait a tiny bit for the container div #qr-reader to be mounted in the DOM
+    const timer = setTimeout(() => {
+      const qrReaderElem = document.getElementById('qr-reader');
+      if (!qrReaderElem) return;
+
+      const scanner = new Html5Qrcode("qr-reader");
+      qrScannerRef.current = scanner;
+
+      scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: (width, height) => {
+            const size = Math.min(width, height) * 0.7;
+            return { width: size, height: size };
+          }
+        },
+        (decodedText) => {
+          handleScanValidate(decodedText);
+          setIsCameraActive(false);
+        },
+        (_error) => {
+          // ignore scan errors to avoid flooding console
+        }
+      ).catch(err => {
+        showToast('Error al iniciar cámara: ' + err.message, 'error');
+        setIsCameraActive(false);
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (qrScannerRef.current && qrScannerRef.current.isScanning) {
+        qrScannerRef.current.stop().catch(err => console.error('Cleanup stop error:', err));
+      }
+    };
+  }, [activeTab, isCameraActive]);
 
   const loadEvents = async () => {
     try {
@@ -783,60 +799,23 @@ export default function App({ onBack }: AppProps) {
         ctx.font = `bold ${nameSize}px Courier New`;
         ctx.fillText(event.name.toUpperCase(), nameX, nameY);
 
-        // Compose QR code simulation
+        // Generate real scannable QR code using qrcode package
         const qrSize = Number(qrConfig.size || event.qr_config?.size) || 100;
         const qrX = Number(qrConfig.x ?? event.qr_config?.x ?? (imgWidth - qrSize - 30));
         const qrY = Number(qrConfig.y ?? event.qr_config?.y ?? (imgHeight - qrSize - 30));
 
-        // Draw white background block (quiet zone)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(qrX, qrY, qrSize, qrSize);
-
-        // Draw simulated QR code data modules (random-looking small blocks)
-        ctx.fillStyle = '#08060d';
-        const cellSize = Math.max(2, Math.round(qrSize / 20)); // 20x20 cell grid
-        const padding = Math.max(4, Math.round(qrSize * 0.05)); // 5% padding
-        
-        for (let r = 0; r < 20; r++) {
-          for (let c = 0; c < 20; c++) {
-            // Avoid drawing in the three corner finder patterns (top-left, top-right, bottom-left)
-            const isTopLeft = r < 7 && c < 7;
-            const isTopRight = r < 7 && c >= 13;
-            const isBottomLeft = r >= 13 && c < 7;
-            
-            if (!isTopLeft && !isTopRight && !isBottomLeft) {
-              // Draw pseudo-random noise
-              if (Math.sin(r * 12.9898 + c * 78.233) * 43758.5453 % 1 > 0.45) {
-                ctx.fillRect(
-                  qrX + padding + c * ((qrSize - padding * 2) / 20),
-                  qrY + padding + r * ((qrSize - padding * 2) / 20),
-                  cellSize,
-                  cellSize
-                );
-              }
-            }
-          }
-        }
-
-        // Draw 3 Corner Finder Patterns (Position Detection Patterns)
-        const drawFinder = (fx: number, fy: number, size: number) => {
-          ctx.fillStyle = '#08060d';
-          ctx.fillRect(fx, fy, size, size);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(fx + size * (1/7), fy + size * (1/7), size * (5/7), size * (5/7));
-          ctx.fillStyle = '#08060d';
-          ctx.fillRect(fx + size * (2/7), fy + size * (2/7), size * (3/7), size * (3/7));
-        };
-
-        const finderSize = Math.round(qrSize * 0.3); // 30% of QR size
-        const innerPadding = padding;
-
-        // Top-Left
-        drawFinder(qrX + innerPadding, qrY + innerPadding, finderSize);
-        // Top-Right
-        drawFinder(qrX + qrSize - finderSize - innerPadding, qrY + innerPadding, finderSize);
-        // Bottom-Left
-        drawFinder(qrX + innerPadding, qrY + qrSize - finderSize - innerPadding, finderSize);
+        QRCode.toDataURL(ticketCode, { margin: 1, color: { dark: '#08060d', light: '#FFFFFF' } })
+          .then(qrDataUrl => {
+            const qrImg = new Image();
+            qrImg.crossOrigin = "anonymous";
+            qrImg.src = qrDataUrl;
+            qrImg.onload = () => {
+              ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+            };
+          })
+          .catch(err => {
+            console.error('Error generating real QR code:', err);
+          });
       };
     }, 100);
   };
@@ -1146,25 +1125,29 @@ export default function App({ onBack }: AppProps) {
             <div className="bg-surface border border-divider p-6 space-y-6 flex flex-col items-center rounded-none">
               
               {/* Virtual Scanner Screen */}
-              <div className="w-full h-64 bg-canvas rounded-none relative overflow-hidden flex flex-col items-center justify-center border-4 border-divider">
+              <div className="w-full h-80 bg-canvas rounded-none relative overflow-hidden flex flex-col items-center justify-center border-4 border-divider">
                 
                 {isCameraActive ? (
-                  <>
-                    <div className="absolute inset-0 bg-canvas/30 backdrop-blur-xs flex flex-col items-center justify-center">
-                      <div className="w-40 h-40 border border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center animate-pulse">
-                        <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 shadow-lg"></div>
+                  <div className="absolute inset-0 w-full h-full">
+                    {/* The target container where html5-qrcode attaches the scanner video feed */}
+                    <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
+                    
+                    {/* Visual overlay over camera stream */}
+                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/10">
+                      <div className="w-44 h-44 border-2 border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center">
+                        <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 animate-[pulse_1.5s_infinite] shadow-lg"></div>
                       </div>
-                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-[#FF8000] mt-4">
-                        Esperando Código QR...
+                      <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/80 px-2 py-0.5 border border-divider mt-4">
+                        Escaneando Código...
                       </span>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <span className="text-secondaryText text-xs font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
                     <button
                       onClick={() => setIsCameraActive(true)}
-                      className="mt-3 bg-[#FF8000] text-canvas px-4 py-2 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
+                      className="mt-3 bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
                     >
                       Activar Cámara de Escaneo
                     </button>
@@ -1172,10 +1155,10 @@ export default function App({ onBack }: AppProps) {
                 )}
 
                 {/* Corner Accents */}
-                <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-[#FF8000]"></div>
-                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-[#FF8000]"></div>
-                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-[#FF8000]"></div>
-                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-[#FF8000]"></div>
+                <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
+                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
+                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
+                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
               </div>
 
               {/* Manual Input (Fallback / Simulación) */}
