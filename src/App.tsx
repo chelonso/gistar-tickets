@@ -1047,13 +1047,13 @@ export default function App({ onBack }: AppProps) {
                 {registrations.map(reg => (
                   <div
                     key={reg.id}
-                    className="bg-surface border border-divider p-5 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between rounded-none relative group hover:bg-[#18191E]/40 transition-colors"
+                    className="w-full bg-surface border border-divider p-5 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start md:items-center rounded-none relative group hover:bg-[#18191E]/40 transition-colors"
                   >
                     {/* Left orange highlight stripe */}
                     <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FF8000]" />
 
-                    {/* Col 1: Icon & Buyer Info */}
-                    <div className="flex items-center gap-4 min-w-0 flex-1 w-full">
+                    {/* Col 1: Icon & Buyer Info (span 4) */}
+                    <div className="flex items-center gap-4 min-w-0 md:col-span-4 w-full">
                       {/* Ticket Icon Representation */}
                       <div className="w-10 h-10 bg-[#FF8000]/10 text-[#FF8000] border border-[#FF8000]/20 font-mono font-bold flex items-center justify-center rounded-none text-xs shrink-0">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1063,33 +1063,34 @@ export default function App({ onBack }: AppProps) {
 
                       {/* Buyer Identity */}
                       <div className="min-w-0">
-                        <div className="font-mono text-xs font-bold text-primaryText uppercase tracking-tight">
+                        <span className="text-[8px] font-mono uppercase tracking-wider text-mutedText block mb-0.5">Comprador</span>
+                        <div className="font-mono text-xs font-bold text-primaryText uppercase tracking-tight truncate">
                           {reg.buyer_name}
                         </div>
-                        <div className="text-[10px] font-mono text-mutedText mt-1">
+                        <div className="text-[10px] font-mono text-mutedText mt-0.5 truncate">
                           ✉ {reg.buyer_email}
                         </div>
                       </div>
                     </div>
 
-                    {/* Col 2: Event Details */}
-                    <div className="flex flex-col flex-1 w-full md:w-auto">
+                    {/* Col 2: Event Details (span 3) */}
+                    <div className="flex flex-col md:col-span-3 w-full">
                       <span className="text-[8px] font-mono uppercase tracking-wider text-mutedText">Evento</span>
-                      <span className="font-sans text-xs font-semibold text-primaryText mt-1.5 uppercase tracking-tight">
+                      <span className="font-sans text-xs font-semibold text-primaryText mt-1.5 uppercase tracking-tight truncate">
                         {reg.events?.name}
                       </span>
                     </div>
 
-                    {/* Col 3: Ticket Code */}
-                    <div className="flex flex-col min-w-[120px]">
+                    {/* Col 3: Ticket Code (span 2) */}
+                    <div className="flex flex-col md:col-span-2 w-full">
                       <span className="text-[8px] font-mono uppercase tracking-wider text-mutedText">Código Ticket</span>
                       <span className="font-mono text-xs font-bold text-[#FF8000] mt-1.5">
                         {reg.ticket_code}
                       </span>
                     </div>
 
-                    {/* Col 4: Access State */}
-                    <div className="flex flex-col min-w-[140px]">
+                    {/* Col 4: Access State (span 2) */}
+                    <div className="flex flex-col md:col-span-2 w-full">
                       <span className="text-[8px] font-mono uppercase tracking-wider text-mutedText">Estado Acceso</span>
                       <div className="mt-1.5 flex items-center gap-2">
                         <span className={`px-2 py-0.5 border text-[9px] font-mono font-bold uppercase rounded-none ${
@@ -1109,8 +1110,8 @@ export default function App({ onBack }: AppProps) {
                       </div>
                     </div>
 
-                    {/* Col 5: Actions */}
-                    <div className="flex gap-2 shrink-0 w-full md:w-auto justify-start md:justify-end border-t md:border-t-0 border-divider pt-3 md:pt-0">
+                    {/* Col 5: Actions (span 1) */}
+                    <div className="flex md:col-span-1 w-full justify-start md:justify-end border-t md:border-t-0 border-divider pt-3 md:pt-0">
                       <button
                         onClick={() => handleDrawTicket(reg.events!, reg.ticket_code)}
                         className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white cursor-pointer transition-colors"
