@@ -1349,13 +1349,13 @@ export default function App({ onBack }: AppProps) {
           <div className="w-full tickets-drawer-wide bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden">
             
             {/* Header */}
-            <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
+            <div className="flex justify-between items-center mb-6 pb-2 shrink-0">
               <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">{eventForm.id ? 'Editar Evento' : 'Crear Nuevo Evento'}</h2>
               <button onClick={handleCloseEventModal} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
             </div>
 
             {/* Scrollable Form Body */}
-            <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar border-t-0 border-none">
               <form onSubmit={(e) => { e.preventDefault(); if (eventForm.id) { handleUpdateEvent(eventForm.id); } else { handleCreateEvent(e); } }} className="text-left space-y-6">
                 <div className="tickets-drawer-grid-3 items-start">
                   
@@ -1412,7 +1412,7 @@ export default function App({ onBack }: AppProps) {
                     <div className="space-y-2">
                       <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Imagen de Fondo del Ticket *</label>
                       
-                      <div className="relative group w-full h-32 bg-canvas border border-divider overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#FF8000] transition-all">
+                      <div className="tickets-compact-dropzone group">
                         {/* Hover Overlay */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center z-10">
                           <svg className="w-5 h-5 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1477,8 +1477,7 @@ export default function App({ onBack }: AppProps) {
                           <div className="flex justify-center bg-canvas p-2 border border-divider rounded-none">
                             <canvas 
                               ref={drawerCanvasRef} 
-                              className="max-w-full rounded-none border border-divider bg-canvas shadow-sm"
-                              style={{ maxHeight: '120px', objectFit: 'contain' }}
+                              className="tickets-live-preview-canvas rounded-none shadow-sm"
                             />
                           </div>
                         </div>
@@ -1500,30 +1499,19 @@ export default function App({ onBack }: AppProps) {
                       <textarea
                         value={jsonEditorText}
                         onChange={(e) => handleJsonChange(e.target.value)}
-                        className="w-full bg-canvas border border-divider p-3 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none custom-scrollbar"
-                        rows={14}
+                        className="tickets-json-editor"
+                        rows={18}
                         placeholder="{}"
                       />
                       {jsonError ? (
-                        <span className="text-[8px] font-mono text-red-500 uppercase tracking-wider block">
+                        <span className="text-[9px] font-mono font-bold text-red-500 uppercase tracking-wider block mt-1">
                           ✗ JSON Inválido: {jsonError}
                         </span>
                       ) : (
-                        <span className="text-[8px] font-mono text-emerald-400 uppercase tracking-wider block">
+                        <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-wider block mt-1">
                           ✓ JSON Válido y Vinculado
                         </span>
                       )}
-                      
-                      <div className="bg-inputBg border border-divider p-3 text-[8.5px] font-mono text-mutedText space-y-1">
-                        <span className="block font-bold text-secondaryText uppercase tracking-wide">Esquema Recomendado:</span>
-                        <pre className="text-[7.5px] text-secondaryText overflow-x-auto">
-{`{
-  "qr": { "x": 450, "y": 40, "size": 100 },
-  "code": { "x": 30, "y": 175, "size": 16, "color": "#FFFFFF" },
-  "name": { "x": 30, "y": 45, "size": 16, "color": "#FFFFFF" }
-}`}
-                        </pre>
-                      </div>
                     </div>
                   </div>
 

@@ -40,3 +40,57 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Custom JSON Code Editor */
+.tickets-json-editor {
+  background-color: #0d0e12 !important;
+  color: #a9b2c3 !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+  padding: 12px !important;
+  border: 1px solid #2e3039 !important;
+  border-radius: 0px !important;
+  resize: vertical !important;
+  width: 100% !important;
+}
+
+.tickets-json-editor:focus {
+  border-color: #5c5f73 !important;
+  outline: none !important;
+}
+
+/* Custom compact dropzone */
+.tickets-compact-dropzone {
+  position: relative;
+  width: 100%;
+  height: 80px !important; /* Force small compact dropzone height */
+  background-color: #12131a;
+  border: 1px solid #2e3039;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tickets-compact-dropzone:hover {
+  border-color: #FF8000;
+}
+
+.tickets-compact-dropzone img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Custom large live preview canvas container */
+.tickets-live-preview-canvas {
+  width: 100% !important;
+  max-height: 380px !important; /* Force much larger live preview height */
+  height: auto !important;
+  object-fit: contain !important;
+  border: 1px solid #2e3039;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
