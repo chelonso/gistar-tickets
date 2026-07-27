@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './index.css';
 
 // API gateway base URL
 const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
