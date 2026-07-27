@@ -978,7 +978,7 @@ export default function App({ onBack }: AppProps) {
                       <div className="mt-4 pt-4 border-t border-divider flex gap-2">
                         <button
                           onClick={() => handleDrawTicket(event, 'TEST-123456')}
-                          className="flex-1 text-center bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white py-2 rounded-none font-mono uppercase text-[10px] tracking-wider transition-colors cursor-pointer"
+                          className="flex-1 text-center bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white py-2 px-4 rounded-none font-mono uppercase text-[10px] tracking-wider transition-colors cursor-pointer"
                         >
                           Ver Entrada
                         </button>
@@ -1524,21 +1524,21 @@ export default function App({ onBack }: AppProps) {
                <button
                  type="button"
                  onClick={handleCloseEventModal}
-                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 px-4 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
                >
                  Cancelar
                </button>
                <button
                  type="button"
                  onClick={handlePreviewNewTicket}
-                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText hover:text-white rounded-none border border-divider font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText hover:text-white rounded-none border border-divider py-3 px-4 font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
                >
                  Previsualizar
                </button>
                <button
                  type="button"
                  onClick={(e) => { e.preventDefault(); if (eventForm.id) { handleUpdateEvent(eventForm.id); } else { handleCreateEvent(e); } }}
-                 className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
+                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
                >
                  {eventForm.id ? 'Guardar Cambios' : 'Crear Evento'}
                </button>
@@ -1592,20 +1592,20 @@ export default function App({ onBack }: AppProps) {
                 </div>
               </form>
             </div>
-            <div className="flex gap-3 mt-8">
-              <button
-                onClick={() => setShowItemModal(false)}
-                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateItem}
-                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer"
-              >
-                Añadir Producto
-              </button>
-            </div>
+             <div className="flex gap-3 mt-8">
+               <button
+                 onClick={() => setShowItemModal(false)}
+                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 px-4 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 Cancelar
+               </button>
+               <button
+                 onClick={handleCreateItem}
+                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 Añadir Producto
+               </button>
+             </div>
           </div>
         </div>
       )}
@@ -1688,20 +1688,20 @@ export default function App({ onBack }: AppProps) {
                 </div>
               </form>
             </div>
-            <div className="flex gap-3 mt-8">
-              <button
-                onClick={() => setShowRegModal(false)}
-                className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateRegistration}
-                className="flex-1 bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer"
-              >
-                Emitir Entrada
-              </button>
-            </div>
+             <div className="flex gap-3 mt-8">
+               <button
+                 onClick={() => setShowRegModal(false)}
+                 className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 px-4 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 Cancelar
+               </button>
+               <button
+                 onClick={handleCreateRegistration}
+                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
+               >
+                 Emitir Entrada
+               </button>
+             </div>
           </div>
         </div>
       )}
