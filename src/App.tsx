@@ -834,7 +834,7 @@ export default function App({ onBack }: AppProps) {
   // Claim item handler
   const handleClaimItem = async (regItemId: string) => {
     try {
-      const res = await fetch(`${gatewayUrl}/api/tickets/claim-item`, {
+      const res = await fetch(`${gatewayUrl}/tickets/claim-item`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
