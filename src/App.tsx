@@ -81,7 +81,17 @@ export default function App({ onBack }: AppProps) {
   } | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isCheckingIn, setIsCheckingIn] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+
+  // Auto-activate camera scanner when entering the scanner tab
+  useEffect(() => {
+    if (activeTab === 'scanner') {
+      setIsCameraActive(true);
+    } else {
+      setIsCameraActive(false);
+    }
+  }, [activeTab]);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [jsonEditorText, setJsonEditorText] = useState<string>('');
@@ -680,7 +690,7 @@ export default function App({ onBack }: AppProps) {
     }
   };
 
-  // Scan Validation Request
+  // Scan Validation Request (Step 1: Check ticket info in database)
   const handleScanValidate = async (code: string) => {
     if (!code) return;
     setIsScanning(true);
@@ -688,32 +698,100 @@ export default function App({ onBack }: AppProps) {
     setScannedResult(null);
 
     try {
-      const res = await fetch(`${gatewayUrl}/api/tickets/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ ticket_code: code }),
+      // Fetch the registration details and join its event details
+      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?ticket_code=eq.${encodeURIComponent(code)}&select=*,events(*)`, {
         credentials: 'include'
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setScannedResult(data);
-        if (data.status === 'accredited') {
-          showToast('¡Acreditado con éxito!', 'success');
-        } else {
-          showToast('Acreditación repetida', 'info');
-        }
-      } else {
-        setScanError(data.error || 'Código inválido');
-        showToast(data.error || 'Error al validar', 'error');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Error al buscar el ticket');
       }
+
+      const registrations = await res.json();
+      if (registrations.length === 0) {
+        setScanError('Ticket inexistente o código QR inválido');
+        showToast('Ticket inexistente o código QR inválido', 'error');
+        return;
+      }
+
+      const registration = registrations[0];
+
+      if (registration.status === 'canceled') {
+        setScanError('Este ticket ha sido cancelado y no es válido para ingreso');
+        showToast('Este ticket ha sido cancelado', 'error');
+      }
+
+      // Fetch associated products/combos for this ticket (tickets.registration_items)
+      const itemsUrl = `${gatewayUrl}/rest/v1/registration_items?registration_id=eq.${registration.id}&select=*,event_items(*)`;
+      const itemsRes = await fetch(itemsUrl, { credentials: 'include' });
+      let registrationItems = [];
+      if (itemsRes.ok) {
+        registrationItems = await itemsRes.json();
+      }
+
+      setScannedResult({
+        registration,
+        items: registrationItems
+      } as any);
+
+      if (registration.status === 'checked_in') {
+        showToast('Atención: Entrada ya validada previamente', 'info');
+      } else if (registration.status === 'pending') {
+        showToast('Ticket encontrado. Haz clic en Confirmar para acreditar.', 'success');
+      }
+
     } catch (err: any) {
       setScanError(err.message);
       showToast('Error de red: ' + err.message, 'error');
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  // Step 2: Confirm check-in (Acreditación)
+  const handleConfirmAcreditacion = async (regId: string) => {
+    setIsCheckingIn(true);
+    try {
+      const nowStr = new Date().toISOString();
+      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?id=eq.${regId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          status: 'checked_in',
+          checked_in_at: nowStr,
+          updated_at: nowStr
+        }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        await res.json();
+        showToast('¡Acreditación realizada con éxito!', 'success');
+        
+        // Update local scanned result state so UI refreshes
+        if (scannedResult) {
+          setScannedResult({
+            ...scannedResult,
+            registration: {
+              ...scannedResult.registration,
+              status: 'checked_in',
+              checked_in_at: nowStr
+            }
+          });
+        }
+        await loadRegistrations();
+      } else {
+        const errText = await res.text();
+        showToast('Error al acreditar: ' + errText, 'error');
+      }
+    } catch (err: any) {
+      showToast('Error de red: ' + err.message, 'error');
+    } finally {
+      setIsCheckingIn(false);
     }
   };
 
@@ -1191,16 +1269,26 @@ export default function App({ onBack }: AppProps) {
             {/* Validation Result Screen */}
             {scannedResult && (
               <div className={`border p-6 shadow-md rounded-none animate-fade-in ${
-                scannedResult.status === 'accredited' 
-                  ? 'bg-surface border-emerald-500/30' 
-                  : 'bg-surface border-amber-500/30'
+                scannedResult.registration.status === 'checked_in' 
+                  ? 'bg-[#1F1414] border-rose-500/30' 
+                  : scannedResult.registration.status === 'canceled'
+                  ? 'bg-surface border-divider'
+                  : 'bg-[#141A16] border-emerald-500/30'
               }`}>
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className={`text-sm font-semibold uppercase tracking-tight font-sans ${
-                      scannedResult.status === 'accredited' ? 'text-emerald-400' : 'text-amber-400'
+                  <div className="text-left">
+                    <h3 className={`text-sm font-bold uppercase tracking-wider font-mono ${
+                      scannedResult.registration.status === 'checked_in' 
+                        ? 'text-rose-400' 
+                        : scannedResult.registration.status === 'canceled'
+                        ? 'text-mutedText'
+                        : 'text-emerald-400'
                     }`}>
-                      {scannedResult.status === 'accredited' ? '✓ ACREDITADO CON ÉXITO' : '[ATENCIÓN] ENTRADA YA VALIDADA'}
+                      {scannedResult.registration.status === 'checked_in' 
+                        ? '⚠️ TICKET YA VALIDADO' 
+                        : scannedResult.registration.status === 'canceled'
+                        ? '🛑 TICKET CANCELADO / INVÁLIDO'
+                        : '✓ ENTRADA PENDIENTE DE INGRESO'}
                     </h3>
                     <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">
                       Código: <span className="font-mono font-bold text-primaryText">{scannedResult.registration.ticket_code}</span>
@@ -1215,7 +1303,7 @@ export default function App({ onBack }: AppProps) {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-divider space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-left">
                     <div>
                       <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Participante</span>
                       <span className="font-bold text-primaryText">{scannedResult.registration.buyer_name}</span>
@@ -1226,14 +1314,33 @@ export default function App({ onBack }: AppProps) {
                     </div>
                   </div>
 
+                  {scannedResult.registration.status === 'checked_in' && (
+                    <div className="bg-rose-950/20 border border-rose-500/20 p-3 text-left">
+                      <span className="text-[10px] font-mono text-rose-400 uppercase font-bold block">Historial de Ingreso</span>
+                      <span className="text-[10px] font-mono text-secondaryText mt-1 block">
+                        Ingresó el: {scannedResult.registration.checked_in_at && new Date(scannedResult.registration.checked_in_at).toLocaleString('es-ES')}
+                      </span>
+                    </div>
+                  )}
+
+                  {scannedResult.registration.status === 'pending' && (
+                    <button
+                      onClick={() => handleConfirmAcreditacion(scannedResult.registration.id)}
+                      disabled={isCheckingIn}
+                      className="w-full bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isCheckingIn ? 'Acreditando...' : 'Confirmar Acreditación e Ingresar'}
+                    </button>
+                  )}
+
                   {/* Associated Products Claim Section */}
                   <div className="space-y-3 pt-3 border-t border-divider">
-                    <h4 className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider">
+                    <h4 className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider text-left">
                       Productos / Combos asociados a entregar:
                     </h4>
 
                     {scannedResult.items.length === 0 ? (
-                      <p className="text-[10px] text-secondaryText font-mono uppercase italic">No hay productos o combos asociados a esta entrada.</p>
+                      <p className="text-[10px] text-secondaryText font-mono uppercase italic text-left">No hay productos o combos asociados a esta entrada.</p>
                     ) : (
                       <div className="space-y-2">
                         {scannedResult.items.map(item => (
