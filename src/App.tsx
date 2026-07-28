@@ -84,11 +84,18 @@ export default function App({ onBack }: AppProps) {
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isCheckingIn, setIsCheckingIn] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [drawerSubView, setDrawerSubView] = useState<'scan' | 'result'>('scan');
+  const drawerSubViewRef = useRef<'scan' | 'result'>('scan');
+
+  useEffect(() => {
+    drawerSubViewRef.current = drawerSubView;
+  }, [drawerSubView]);
 
   // Auto-activate camera scanner when entering the scanner tab or opening the scanner drawer
   useEffect(() => {
     if (showScannerDrawer) {
       setIsCameraActive(true);
+      setDrawerSubView('scan');
     } else {
       setIsCameraActive(false);
     }
@@ -300,9 +307,8 @@ export default function App({ onBack }: AppProps) {
             }
           },
           (decodedText) => {
-            if (isMounted) {
+            if (isMounted && drawerSubViewRef.current === 'scan') {
               handleScanValidate(decodedText);
-              setIsCameraActive(false);
             }
           },
           (_error) => {
@@ -770,6 +776,8 @@ export default function App({ onBack }: AppProps) {
         registration,
         items: registrationItems
       } as any);
+
+      setDrawerSubView('result');
 
       if (registration.status === 'checked_in') {
         showToast('Atención: Entrada ya validada previamente', 'info');
@@ -1346,74 +1354,91 @@ export default function App({ onBack }: AppProps) {
 
             {/* Drawer Body (Scrollable content) */}
             <div className="flex-grow overflow-y-auto py-6 space-y-6 custom-scrollbar text-left">
-              {/* Camera Scanner Area */}
-              <div className="bg-canvas border border-divider p-4 flex flex-col items-center rounded-none relative">
-                {/* Virtual Scanner Screen */}
-                <div className="tickets-scanner-screen">
-                  {/* Keep qr-reader mounted in DOM, but hide it if camera is inactive */}
-                  <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
-                    <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
-                  </div>
-
-                  {/* Decorative overlay overlaying the video feed */}
-                  {isCameraActive && (
-                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/25 z-10">
-                      <div className="tickets-scanner-target">
-                        <div className="tickets-scanner-laser"></div>
-                      </div>
-                      <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/90 px-2 py-0.5 border border-divider mt-3">
-                        Lente Activo...
-                      </span>
+              {/* PAGE 1: SCANNER SCREEN (Kept mounted, but hidden/shown dynamically) */}
+              <div 
+                style={{ display: drawerSubView === 'scan' ? 'block' : 'none' }} 
+                className="space-y-6 animate-fade-in"
+              >
+                {/* Camera Scanner Area */}
+                <div className="bg-canvas border border-divider p-6 flex flex-col items-center rounded-none relative space-y-6">
+                  {/* Virtual Scanner Screen */}
+                  <div className="tickets-scanner-screen">
+                    {/* Keep qr-reader mounted in DOM, but hide it if camera is inactive */}
+                    <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
+                      <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
                     </div>
-                  )}
 
-                  {!isCameraActive && (
-                    <>
-                      <span className="text-secondaryText text-[10px] font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
+                    {/* Decorative overlay overlaying the video feed */}
+                    {isCameraActive && (
+                      <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/25 z-10">
+                        <div className="tickets-scanner-target">
+                          <div className="tickets-scanner-laser"></div>
+                        </div>
+                        <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/90 px-2 py-0.5 border border-divider mt-3">
+                          Lente Activo...
+                        </span>
+                      </div>
+                    )}
+
+                    {!isCameraActive && (
+                      <>
+                        <span className="text-secondaryText text-[10px] font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
+                        <button
+                          onClick={() => setIsCameraActive(true)}
+                          className="mt-3 bg-[#FF8000] text-canvas px-4 py-2 rounded-none font-mono uppercase font-bold text-[9px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
+                        >
+                          Reactivar Cámara
+                        </button>
+                      </>
+                    )}
+
+                    {/* Corner Accents */}
+                    <div className="absolute top-3 left-3 w-3 h-3 border-t-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
+                    <div className="absolute top-3 right-3 w-3 h-3 border-t-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
+                    <div className="absolute bottom-3 left-3 w-3 h-3 border-b-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
+                    <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
+                  </div>
+
+                  {/* Manual input simulation */}
+                  <div className="w-full mt-2 space-y-2">
+                    <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
+                      Digitar Código Manual (Simular escaneo)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ej. EVT-123456"
+                        value={scanCodeInput}
+                        onChange={(e) => setScanCodeInput(e.target.value)}
+                        className="flex-1 bg-inputBg border border-divider px-3 py-2.5 text-xs text-primaryText font-mono uppercase focus:border-secondaryText focus:outline-none rounded-none"
+                      />
                       <button
-                        onClick={() => setIsCameraActive(true)}
-                        className="mt-3 bg-[#FF8000] text-canvas px-4 py-2 rounded-none font-mono uppercase font-bold text-[9px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
+                        onClick={() => {
+                          handleScanValidate(scanCodeInput.trim().toUpperCase());
+                        }}
+                        disabled={isScanning || !scanCodeInput}
+                        className="bg-inputBg hover:bg-divider border border-divider text-[#FF8000] px-5 py-2.5 rounded-none font-mono uppercase font-bold text-[11px] tracking-wider transition-all disabled:opacity-50 cursor-pointer"
                       >
-                        Reactivar Cámara
+                        {isScanning ? 'Validando...' : 'Buscar'}
                       </button>
-                    </>
-                  )}
-
-                  {/* Corner Accents */}
-                  <div className="absolute top-3 left-3 w-3 h-3 border-t-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
-                  <div className="absolute top-3 right-3 w-3 h-3 border-t-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
-                  <div className="absolute bottom-3 left-3 w-3 h-3 border-b-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
-                  <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
-                </div>
-
-                {/* Manual input simulation */}
-                <div className="w-full mt-4 space-y-1.5">
-                  <label className="text-[9px] font-mono font-bold text-mutedText uppercase tracking-wider block">
-                    Digitar Código Manual (Simular escaneo)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Ej. EVT-123456"
-                      value={scanCodeInput}
-                      onChange={(e) => setScanCodeInput(e.target.value)}
-                      className="flex-1 bg-inputBg border border-divider px-3 py-2 text-[11px] text-primaryText font-mono uppercase focus:border-secondaryText focus:outline-none rounded-none"
-                    />
-                    <button
-                      onClick={() => {
-                        handleScanValidate(scanCodeInput.trim().toUpperCase());
-                      }}
-                      disabled={isScanning || !scanCodeInput}
-                      className="bg-inputBg hover:bg-divider border border-divider text-[#FF8000] px-4 py-2 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider transition-all disabled:opacity-50 cursor-pointer"
-                    >
-                      {isScanning ? 'Validando...' : 'Buscar'}
-                    </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Scan Error box */}
+                {scanError && (
+                  <div className="bg-surface border border-rose-500/30 p-5 shadow-md flex items-center gap-3 animate-fade-in rounded-none text-left">
+                    <div className="text-rose-400 font-bold text-lg">✕</div>
+                    <div>
+                      <h3 className="text-rose-400 font-sans uppercase font-bold text-xs tracking-tight">Error de Validación</h3>
+                      <p className="text-secondaryText font-mono text-[10px] uppercase mt-1 leading-normal">{scanError}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Validation Result Screen */}
-              {scannedResult && (() => {
+              {/* PAGE 2: VALIDATION RESULT & ACTIONS SCREEN */}
+              {drawerSubView === 'result' && scannedResult && (() => {
                 const { registration, items } = scannedResult;
                 const isCheckedIn = registration.status === 'checked_in';
                 const isCanceled = registration.status === 'canceled';
@@ -1421,39 +1446,61 @@ export default function App({ onBack }: AppProps) {
                 const allItemsClaimed = hasItems && items.every((it: any) => it.status === 'claimed');
                 
                 return (
-                  <div className="space-y-4">
-                    {/* Status Box */}
-                    <div className={`border p-4 rounded-none animate-fade-in ${
+                  <div className="space-y-6 animate-fade-in">
+                    {/* Back to Scanner button */}
+                    <button
+                      onClick={() => {
+                        setScannedResult(null);
+                        setScanError(null);
+                        setScanCodeInput('');
+                        setDrawerSubView('scan');
+                      }}
+                      className="flex items-center gap-2 text-secondaryText hover:text-white font-mono uppercase font-bold text-[10px] tracking-wider mb-6 pb-2 border-b border-divider/40 w-full cursor-pointer text-left"
+                    >
+                      <svg className="w-4 h-4 text-[#FF8000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Volver al Escáner
+                    </button>
+
+                    {/* Status Card */}
+                    <div className={`border p-6 rounded-none text-center ${
                       isCheckedIn 
-                        ? 'bg-[#1F1414] border-rose-500/30 text-rose-400' 
+                        ? 'bg-[#1F1414] border-rose-500/40 text-rose-400' 
                         : isCanceled
                         ? 'bg-surface border-divider text-mutedText'
-                        : 'bg-[#141A16] border-emerald-500/30 text-emerald-400'
+                        : 'bg-[#141A16] border-emerald-500/40 text-emerald-400'
                     }`}>
-                      <h3 className="text-xs font-bold uppercase tracking-wider font-mono">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em] opacity-80 block mb-1">Estado del Ticket</span>
+                      <h3 className="text-sm font-bold uppercase tracking-wider font-mono">
                         {isCheckedIn 
                           ? '⚠️ TICKET YA ACREDITADO (DENTRO)' 
                           : isCanceled
                           ? '🛑 TICKET CANCELADO / INVÁLIDO'
                           : '✓ ENTRADA VÁLIDA — PENDIENTE'}
                       </h3>
-                      <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">
-                        Código: <span className="font-mono font-bold text-primaryText">{registration.ticket_code}</span>
+                      <p className="text-[11px] text-secondaryText font-mono uppercase mt-2">
+                        Código: <span className="font-mono font-bold text-primaryText tracking-widest">{registration.ticket_code}</span>
                       </p>
                     </div>
 
                     {/* Attendee details */}
-                    <div className="bg-surface border border-divider p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-3 text-[11px]">
-                        <div>
-                          <span className="text-[8px] text-mutedText block font-mono uppercase tracking-wider">Acreditado</span>
-                          <span className="font-semibold text-primaryText uppercase">{registration.buyer_name}</span>
-                          <span className="text-[9px] text-mutedText block font-mono lowercase truncate">{registration.buyer_email}</span>
+                    <div className="bg-surface border border-divider p-6 space-y-4">
+                      <h4 className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-[0.15em] border-b border-divider pb-2">
+                        Datos del Asistente
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[12px]">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Nombre del Acreditado</span>
+                          <span className="font-bold text-primaryText text-sm uppercase">{registration.buyer_name}</span>
+                          <span className="text-[10px] text-secondaryText font-mono lowercase block">{registration.buyer_email}</span>
                         </div>
-                        <div>
-                          <span className="text-[8px] text-mutedText block font-mono uppercase tracking-wider">Evento</span>
-                          <span className="font-semibold text-primaryText uppercase truncate block">{registration.events?.name}</span>
-                          <span className="text-[9px] text-mutedText block font-mono">Fecha: {registration.events?.date && new Date(registration.events.date).toLocaleDateString('es-ES')}</span>
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Evento Registrado</span>
+                          <span className="font-bold text-primaryText text-sm uppercase block truncate">{registration.events?.name}</span>
+                          <span className="text-[10px] text-secondaryText font-mono block">
+                            Fecha: {registration.events?.date && new Date(registration.events.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1463,57 +1510,67 @@ export default function App({ onBack }: AppProps) {
                       <button
                         onClick={() => handleConfirmAcreditacion(registration.id)}
                         disabled={isCheckingIn}
-                        className="w-full bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full bg-[#FF8000] text-canvas py-4 rounded-none font-mono uppercase font-bold text-xs tracking-[0.15em] transition-all hover:bg-opacity-95 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                       >
-                        {isCheckingIn ? 'Registrando Acceso...' : 'Confirmar Acreditación e Ingresar'}
+                        {isCheckingIn ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 text-canvas" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Registrando Acceso...
+                          </>
+                        ) : (
+                          'Confirmar Acreditación e Ingresar'
+                        )}
                       </button>
                     )}
 
                     {/* Products / Items Section */}
                     {isCheckedIn && (
-                      <div className="border border-divider p-4 bg-surface space-y-3">
-                        <div className="flex justify-between items-center border-b border-divider pb-2">
-                          <h4 className="text-[9px] font-mono font-bold text-mutedText uppercase tracking-wider">
+                      <div className="border border-divider p-6 bg-surface space-y-6">
+                        <div className="flex justify-between items-center border-b border-divider pb-3">
+                          <h4 className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-[0.15em]">
                             Entregas y Productos Asociados
                           </h4>
-                          <span className="px-1.5 py-0.5 border text-[8px] font-mono font-bold bg-[#FF8000]/10 border-[#FF8000]/20 text-[#FF8000] uppercase">
+                          <span className="px-2 py-0.5 border text-[9px] font-mono font-bold bg-[#FF8000]/10 border-[#FF8000]/20 text-[#FF8000] uppercase tracking-wider">
                             Check-in OK
                           </span>
                         </div>
 
                         {!hasItems ? (
                           /* No products associated */
-                          <div className="bg-canvas border border-divider/60 p-3 text-center">
-                            <span className="text-[10px] text-secondaryText font-mono uppercase italic">
+                          <div className="bg-canvas border border-divider/60 p-6 text-center">
+                            <span className="text-[11px] text-secondaryText font-mono uppercase italic">
                               Este ticket no tiene productos ni combos asignados.
                             </span>
                           </div>
                         ) : allItemsClaimed ? (
                           /* All products claimed */
-                          <div className="bg-[#141A16] border border-emerald-500/20 p-3 text-left">
-                            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold block">✓ Todo Canjeado</span>
-                            <span className="text-[9px] font-mono text-secondaryText mt-1 block leading-normal">
-                              Todos los productos y combos de este ticket ya fueron entregados al acreditado.
+                          <div className="bg-[#141A16] border border-emerald-500/20 p-6 text-left space-y-2 animate-fade-in">
+                            <span className="text-[11px] font-mono text-emerald-400 uppercase font-bold block tracking-wider">✓ Todo Canjeado</span>
+                            <span className="text-[10px] font-mono text-secondaryText block leading-relaxed">
+                              Todos los productos y combos de este ticket ya fueron entregados satisfactoriamente al acreditado.
                             </span>
                           </div>
                         ) : (
                           /* Pending products to deliver */
-                          <div className="space-y-2">
+                          <div className="space-y-4">
                             {items.map(item => (
-                              <div key={item.id} className="flex justify-between items-center p-3 bg-canvas border border-divider rounded-none">
-                                <div className="text-left min-w-0 pr-2">
-                                  <div className="font-bold text-primaryText text-xs truncate">{item.event_items?.name}</div>
-                                  <div className="text-[9px] text-secondaryText font-mono mt-0.5 truncate">{item.event_items?.description || 'Sin descripción'}</div>
+                              <div key={item.id} className="flex justify-between items-center p-5 bg-canvas border border-divider rounded-none transition-all hover:border-divider/80">
+                                <div className="text-left min-w-0 pr-4 space-y-1">
+                                  <div className="font-bold text-primaryText text-sm truncate">{item.event_items?.name}</div>
+                                  <div className="text-[10px] text-secondaryText font-mono truncate leading-normal">{item.event_items?.description || 'Sin descripción'}</div>
                                 </div>
-                                <div className="shrink-0">
+                                <div className="shrink-0 ml-4">
                                   {item.status === 'claimed' ? (
-                                    <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-2 py-0.5 rounded-none">
+                                    <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-3 py-1.5 rounded-none">
                                       ✓ Entregado
                                     </div>
                                   ) : (
                                     <button
                                       onClick={() => handleClaimItem(item.id)}
-                                      className="bg-emerald-600 hover:bg-emerald-500 text-canvas font-mono uppercase font-bold text-[9px] tracking-wider px-3 py-1.5 rounded-none transition-colors cursor-pointer"
+                                      className="bg-emerald-600 hover:bg-emerald-500 text-canvas font-mono uppercase font-bold text-[10px] tracking-wider px-5 py-2.5 rounded-none transition-colors cursor-pointer"
                                     >
                                       Canjear
                                     </button>
@@ -1528,17 +1585,6 @@ export default function App({ onBack }: AppProps) {
                   </div>
                 );
               })()}
-
-              {/* Scan Error box */}
-              {scanError && (
-                <div className="bg-surface border border-rose-500/30 p-4 shadow-md flex items-center gap-3 animate-fade-in rounded-none text-left">
-                  <div className="text-rose-400 font-bold text-lg">✕</div>
-                  <div>
-                    <h3 className="text-rose-400 font-sans uppercase font-bold text-xs tracking-tight">Error de Validación</h3>
-                    <p className="text-secondaryText font-mono text-[9px] uppercase mt-0.5 leading-normal">{scanError}</p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Drawer Footer */}
