@@ -257,53 +257,80 @@ export default function App({ onBack }: AppProps) {
     }
   };
 
-  // Camera scanner lifecycle hook
+  // Camera scanner lifecycle hook (Safe instance control avoiding race conditions)
   useEffect(() => {
-    if (activeTab !== 'scanner' || !isCameraActive) {
-      if (qrScannerRef.current && qrScannerRef.current.isScanning) {
-        qrScannerRef.current.stop()
-          .then(() => {
-            qrScannerRef.current = null;
-          })
-          .catch(err => console.error('Error stopping scanner:', err));
-      }
-      return;
-    }
+    let isMounted = true;
+    let scannerInstance: Html5Qrcode | null = null;
 
-    // Wait a tiny bit for the container div #qr-reader to be mounted in the DOM
-    const timer = setTimeout(() => {
+    const startScanner = async () => {
+      if (activeTab !== 'scanner' || !isCameraActive) return;
+
+      // Allow DOM settled layout time
+      await new Promise(resolve => setTimeout(resolve, 150));
+      if (!isMounted) return;
+
       const qrReaderElem = document.getElementById('qr-reader');
       if (!qrReaderElem) return;
 
-      const scanner = new Html5Qrcode("qr-reader");
-      qrScannerRef.current = scanner;
-
-      scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: (width, height) => {
-            const size = Math.min(width, height) * 0.7;
-            return { width: size, height: size };
+      try {
+        // Safe reset preceding ref instances
+        if (qrScannerRef.current) {
+          try {
+            if (qrScannerRef.current.isScanning) {
+              await qrScannerRef.current.stop();
+            }
+          } catch (e) {
+            console.warn('Silent stop preceding instance:', e);
           }
-        },
-        (decodedText) => {
-          handleScanValidate(decodedText);
-          setIsCameraActive(false);
-        },
-        (_error) => {
-          // ignore scan errors to avoid flooding console
+          qrScannerRef.current = null;
         }
-      ).catch(err => {
-        showToast('Error al iniciar cámara: ' + err.message, 'error');
-        setIsCameraActive(false);
-      });
-    }, 100);
+
+        const scanner = new Html5Qrcode("qr-reader");
+        scannerInstance = scanner;
+        qrScannerRef.current = scanner;
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: (width, height) => {
+              const size = Math.min(width, height) * 0.7;
+              return { width: size, height: size };
+            }
+          },
+          (decodedText) => {
+            if (isMounted) {
+              handleScanValidate(decodedText);
+              setIsCameraActive(false);
+            }
+          },
+          (_error) => {
+            // ignore scan module errors
+          }
+        );
+      } catch (err: any) {
+        console.error('Error starting camera scan:', err);
+        if (isMounted) {
+          showToast('Error al iniciar cámara: ' + err.message, 'error');
+          setIsCameraActive(false);
+        }
+      }
+    };
+
+    startScanner();
 
     return () => {
-      clearTimeout(timer);
-      if (qrScannerRef.current && qrScannerRef.current.isScanning) {
-        qrScannerRef.current.stop().catch(err => console.error('Cleanup stop error:', err));
+      isMounted = false;
+      if (scannerInstance) {
+        if (scannerInstance.isScanning) {
+          scannerInstance.stop()
+            .then(() => {
+              if (qrScannerRef.current === scannerInstance) {
+                qrScannerRef.current = null;
+              }
+            })
+            .catch(err => console.error('Safe stop cleanup error:', err));
+        }
       }
     };
   }, [activeTab, isCameraActive]);
@@ -1205,22 +1232,24 @@ export default function App({ onBack }: AppProps) {
               {/* Virtual Scanner Screen */}
               <div className="w-full h-80 bg-canvas rounded-none relative overflow-hidden flex flex-col items-center justify-center border-4 border-divider">
                 
-                {isCameraActive ? (
-                  <div className="absolute inset-0 w-full h-full">
-                    {/* The target container where html5-qrcode attaches the scanner video feed */}
-                    <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
-                    
-                    {/* Visual overlay over camera stream */}
-                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/10">
-                      <div className="w-44 h-44 border-2 border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center">
-                        <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 animate-[pulse_1.5s_infinite] shadow-lg"></div>
-                      </div>
-                      <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/80 px-2 py-0.5 border border-divider mt-4">
-                        Escaneando Código...
-                      </span>
+                {/* Keep qr-reader mounted in the DOM to avoid lifecycle crashes, but hide it if camera is inactive */}
+                <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
+                  <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
+                </div>
+
+                {/* Decorative overlay overlaying the video feed */}
+                {isCameraActive && (
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/10 z-10">
+                    <div className="w-44 h-44 border-2 border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center">
+                      <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 animate-[pulse_1.5s_infinite] shadow-lg"></div>
                     </div>
+                    <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/80 px-2 py-0.5 border border-divider mt-4">
+                      Escaneando Código...
+                    </span>
                   </div>
-                ) : (
+                )}
+
+                {!isCameraActive && (
                   <>
                     <span className="text-secondaryText text-xs font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
                     <button
