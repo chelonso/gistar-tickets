@@ -109,3 +109,43 @@
     gap: 24px;
   }
 }
+
+/* Custom camera scanner drawer layout (Estrategia 2 - Native CSS) */
+.tickets-scanner-screen {
+  width: 100% !important;
+  height: 256px !important;
+  background-color: #000000 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid #2e3039 !important;
+}
+
+.tickets-scanner-target {
+  width: 144px !important;
+  height: 144px !important;
+  border: 2px dashed #FF8000 !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.tickets-scanner-laser {
+  position: absolute !important;
+  width: 100% !important;
+  height: 2px !important;
+  background-color: #FF8000 !important;
+  top: 50% !important;
+  left: 0 !important;
+  box-shadow: 0 0 8px #FF8000 !important;
+  animation: tickets-pulse-laser 1.5s infinite !important;
+}
+
+@keyframes tickets-pulse-laser {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}

@@ -1349,7 +1349,7 @@ export default function App({ onBack }: AppProps) {
               {/* Camera Scanner Area */}
               <div className="bg-canvas border border-divider p-4 flex flex-col items-center rounded-none relative">
                 {/* Virtual Scanner Screen */}
-                <div className="w-full h-64 bg-black rounded-none relative overflow-hidden flex flex-col items-center justify-center border-2 border-divider">
+                <div className="tickets-scanner-screen">
                   {/* Keep qr-reader mounted in DOM, but hide it if camera is inactive */}
                   <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
                     <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
@@ -1358,8 +1358,8 @@ export default function App({ onBack }: AppProps) {
                   {/* Decorative overlay overlaying the video feed */}
                   {isCameraActive && (
                     <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/25 z-10">
-                      <div className="w-36 h-36 border-2 border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center">
-                        <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 animate-[pulse_1.5s_infinite] shadow-lg"></div>
+                      <div className="tickets-scanner-target">
+                        <div className="tickets-scanner-laser"></div>
                       </div>
                       <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/90 px-2 py-0.5 border border-divider mt-3">
                         Lente Activo...
