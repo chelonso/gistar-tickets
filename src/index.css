@@ -113,7 +113,8 @@
 /* Custom camera scanner drawer layout (Estrategia 2 - Native CSS) */
 .tickets-scanner-screen {
   width: 100% !important;
-  height: 256px !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9 !important;
   background-color: #000000 !important;
   position: relative !important;
   overflow: hidden !important;
@@ -122,6 +123,17 @@
   align-items: center !important;
   justify-content: center !important;
   border: 2px solid #2e3039 !important;
+}
+
+#qr-reader {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 .tickets-scanner-target {
@@ -148,4 +160,14 @@
 @keyframes tickets-pulse-laser {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .tickets-drawer-wide {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .tickets-scanner-screen {
+    aspect-ratio: 4 / 3 !important; /* Slightly taller on mobile screens for better portrait scanning */
+  }
 }
