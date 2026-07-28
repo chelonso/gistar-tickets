@@ -52,7 +52,7 @@ interface AppProps {
 
 export default function App({ onBack }: AppProps) {
   // Tabs
-  const [activeTab, setActiveTab] = useState<'events' | 'registrations' | 'scanner' | 'config'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'registrations' | 'config'>('events');
 
   // Operational states
   const [tenantId, setTenantId] = useState<string>('');
@@ -70,6 +70,7 @@ export default function App({ onBack }: AppProps) {
   const [showItemModal, setShowItemModal] = useState<boolean>(false);
   const [showRegModal, setShowRegModal] = useState<boolean>(false);
   const [showTicketDesigner, setShowTicketDesigner] = useState<Event | null>(null);
+  const [showScannerDrawer, setShowScannerDrawer] = useState<boolean>(false);
 
   // Scanner Operational UI states
   const [scanCodeInput, setScanCodeInput] = useState<string>('');
@@ -84,14 +85,14 @@ export default function App({ onBack }: AppProps) {
   const [isCheckingIn, setIsCheckingIn] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
 
-  // Auto-activate camera scanner when entering the scanner tab
+  // Auto-activate camera scanner when entering the scanner tab or opening the scanner drawer
   useEffect(() => {
-    if (activeTab === 'scanner') {
+    if (showScannerDrawer) {
       setIsCameraActive(true);
     } else {
       setIsCameraActive(false);
     }
-  }, [activeTab]);
+  }, [activeTab, showScannerDrawer]);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [jsonEditorText, setJsonEditorText] = useState<string>('');
@@ -263,7 +264,7 @@ export default function App({ onBack }: AppProps) {
     let scannerInstance: Html5Qrcode | null = null;
 
     const startScanner = async () => {
-      if (activeTab !== 'scanner' || !isCameraActive) return;
+      if (!showScannerDrawer || !isCameraActive) return;
 
       // Allow DOM settled layout time
       await new Promise(resolve => setTimeout(resolve, 150));
@@ -333,7 +334,7 @@ export default function App({ onBack }: AppProps) {
         }
       }
     };
-  }, [activeTab, isCameraActive]);
+  }, [isCameraActive, showScannerDrawer]);
 
   const loadEvents = async () => {
     try {
@@ -724,6 +725,14 @@ export default function App({ onBack }: AppProps) {
     setScanError(null);
     setScannedResult(null);
 
+    // Format validation
+    if (!/^(EVT|PREVIEW)-\d{6}$/i.test(code)) {
+      setScanError('Formato de código inválido. Debe ser EVT-###### (Ej: EVT-123456)');
+      showToast('Formato de código inválido', 'error');
+      setIsScanning(false);
+      return;
+    }
+
     try {
       // Fetch the registration details and join its event details
       const res = await fetch(`${gatewayUrl}/rest/v1/registrations?ticket_code=eq.${encodeURIComponent(code)}&select=*,events(*)`, {
@@ -985,8 +994,13 @@ export default function App({ onBack }: AppProps) {
 
           {/* Control de Acceso (QR) Icon */}
           <button 
-            onClick={() => setActiveTab('scanner')} 
-            className={`w-10 h-10 flex items-center justify-center rounded-none cursor-pointer transition-all ${activeTab === 'scanner' ? 'bg-[#FF8000] text-canvas' : 'text-secondaryText hover:bg-inputBg'}`}
+            onClick={() => {
+              setScanCodeInput('');
+              setScanError(null);
+              setScannedResult(null);
+              setShowScannerDrawer(true);
+            }} 
+            className={`w-10 h-10 flex items-center justify-center rounded-none cursor-pointer transition-all ${showScannerDrawer ? 'bg-[#FF8000] text-canvas' : 'text-secondaryText hover:bg-inputBg'}`}
             title="Control de Acceso (QR)"
           >
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1107,18 +1121,34 @@ export default function App({ onBack }: AppProps) {
                 <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Registro de Entradas</h1>
                 <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Visualiza tickets emitidos y canje de combos asociados</p>
               </div>
-              <button
-                onClick={() => {
-                  if (events.length === 0) {
-                    showToast('Debes crear un evento primero', 'error');
-                    return;
-                  }
-                  setShowRegModal(true);
-                }}
-                className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
-              >
-                Emitir Entrada (Manual)
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setScanCodeInput('');
+                    setScanError(null);
+                    setScannedResult(null);
+                    setShowScannerDrawer(true);
+                  }}
+                  className="bg-inputBg border border-divider hover:border-secondaryText text-[#FF8000] px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                  </svg>
+                  Escanear QR
+                </button>
+                <button
+                  onClick={() => {
+                    if (events.length === 0) {
+                      showToast('Debes crear un evento primero', 'error');
+                      return;
+                    }
+                    setShowRegModal(true);
+                  }}
+                  className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                >
+                  Emitir Entrada (Manual)
+                </button>
+              </div>
             </div>
 
             {registrations.length === 0 ? (
@@ -1216,205 +1246,6 @@ export default function App({ onBack }: AppProps) {
         )}
 
         {/* ==================================================================== */}
-        {/* CONTROL DE ACCESO (QR SCANNER) */}
-        {/* ==================================================================== */}
-        {activeTab === 'scanner' && (
-          <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
-            <div className="max-w-2xl mx-auto space-y-6">
-            <div className="text-center border-b border-divider pb-4">
-              <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Escanear Ticket QR</h1>
-              <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Valida la acreditación de entrada y gestiona el canje de productos asociados</p>
-            </div>
-
-            {/* Simulated QR Scan Area */}
-            <div className="bg-surface border border-divider p-6 space-y-6 flex flex-col items-center rounded-none">
-              
-              {/* Virtual Scanner Screen */}
-              <div className="w-full h-80 bg-canvas rounded-none relative overflow-hidden flex flex-col items-center justify-center border-4 border-divider">
-                
-                {/* Keep qr-reader mounted in the DOM to avoid lifecycle crashes, but hide it if camera is inactive */}
-                <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
-                  <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
-                </div>
-
-                {/* Decorative overlay overlaying the video feed */}
-                {isCameraActive && (
-                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/10 z-10">
-                    <div className="w-44 h-44 border-2 border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center">
-                      <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 animate-[pulse_1.5s_infinite] shadow-lg"></div>
-                    </div>
-                    <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/80 px-2 py-0.5 border border-divider mt-4">
-                      Escaneando Código...
-                    </span>
-                  </div>
-                )}
-
-                {!isCameraActive && (
-                  <>
-                    <span className="text-secondaryText text-xs font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
-                    <button
-                      onClick={() => setIsCameraActive(true)}
-                      className="mt-3 bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
-                    >
-                      Activar Cámara de Escaneo
-                    </button>
-                  </>
-                )}
-
-                {/* Corner Accents */}
-                <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
-                <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
-                <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
-                <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
-              </div>
-
-              {/* Manual Input (Fallback / Simulación) */}
-              <div className="w-full space-y-2 text-left">
-                <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
-                  Simular Escaneo (Digita el Código del Ticket)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Ej. EVT-123456"
-                    value={scanCodeInput}
-                    onChange={(e) => setScanCodeInput(e.target.value)}
-                    className="flex-1 bg-inputBg border border-divider px-4 py-3 text-xs text-primaryText font-mono uppercase focus:border-secondaryText focus:outline-none rounded-none"
-                  />
-                  <button
-                    onClick={() => {
-                      handleScanValidate(scanCodeInput.trim().toUpperCase());
-                      setIsCameraActive(true);
-                    }}
-                    disabled={isScanning || !scanCodeInput}
-                    className="bg-[#FF8000] text-canvas px-5 py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all disabled:opacity-50 cursor-pointer"
-                  >
-                    {isScanning ? 'Procesando...' : 'Escanear / Validar'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Validation Result Screen */}
-            {scannedResult && (
-              <div className={`border p-6 shadow-md rounded-none animate-fade-in ${
-                scannedResult.registration.status === 'checked_in' 
-                  ? 'bg-[#1F1414] border-rose-500/30' 
-                  : scannedResult.registration.status === 'canceled'
-                  ? 'bg-surface border-divider'
-                  : 'bg-[#141A16] border-emerald-500/30'
-              }`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="text-left">
-                    <h3 className={`text-sm font-bold uppercase tracking-wider font-mono ${
-                      scannedResult.registration.status === 'checked_in' 
-                        ? 'text-rose-400' 
-                        : scannedResult.registration.status === 'canceled'
-                        ? 'text-mutedText'
-                        : 'text-emerald-400'
-                    }`}>
-                      {scannedResult.registration.status === 'checked_in' 
-                        ? '⚠️ TICKET YA VALIDADO' 
-                        : scannedResult.registration.status === 'canceled'
-                        ? '🛑 TICKET CANCELADO / INVÁLIDO'
-                        : '✓ ENTRADA PENDIENTE DE INGRESO'}
-                    </h3>
-                    <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">
-                      Código: <span className="font-mono font-bold text-primaryText">{scannedResult.registration.ticket_code}</span>
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => setScannedResult(null)} 
-                    className="text-secondaryText hover:text-white font-bold font-mono text-xs cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-divider space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-left">
-                    <div>
-                      <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Participante</span>
-                      <span className="font-bold text-primaryText">{scannedResult.registration.buyer_name}</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Evento</span>
-                      <span className="font-bold text-primaryText">{scannedResult.registration.events?.name}</span>
-                    </div>
-                  </div>
-
-                  {scannedResult.registration.status === 'checked_in' && (
-                    <div className="bg-rose-950/20 border border-rose-500/20 p-3 text-left">
-                      <span className="text-[10px] font-mono text-rose-400 uppercase font-bold block">Historial de Ingreso</span>
-                      <span className="text-[10px] font-mono text-secondaryText mt-1 block">
-                        Ingresó el: {scannedResult.registration.checked_in_at && new Date(scannedResult.registration.checked_in_at).toLocaleString('es-ES')}
-                      </span>
-                    </div>
-                  )}
-
-                  {scannedResult.registration.status === 'pending' && (
-                    <button
-                      onClick={() => handleConfirmAcreditacion(scannedResult.registration.id)}
-                      disabled={isCheckingIn}
-                      className="w-full bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      {isCheckingIn ? 'Acreditando...' : 'Confirmar Acreditación e Ingresar'}
-                    </button>
-                  )}
-
-                  {/* Associated Products Claim Section */}
-                  <div className="space-y-3 pt-3 border-t border-divider">
-                    <h4 className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider text-left">
-                      Productos / Combos asociados a entregar:
-                    </h4>
-
-                    {scannedResult.items.length === 0 ? (
-                      <p className="text-[10px] text-secondaryText font-mono uppercase italic text-left">No hay productos o combos asociados a esta entrada.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {scannedResult.items.map(item => (
-                          <div key={item.id} className="flex justify-between items-center p-3 bg-inputBg border border-divider rounded-none">
-                            <div className="text-left">
-                              <div className="font-bold text-primaryText text-xs">{item.event_items?.name}</div>
-                              <div className="text-[9px] text-secondaryText font-mono mt-0.5">{item.event_items?.description || 'Sin descripción'}</div>
-                            </div>
-                            <div>
-                              {item.status === 'claimed' ? (
-                                <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-2.5 py-1 rounded-none flex items-center gap-1">
-                                  ✓ Canjeado {item.claimed_at && `(${new Date(item.claimed_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})`}
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => handleClaimItem(item.id)}
-                                  className="bg-emerald-600 hover:bg-emerald-500 text-canvas font-mono uppercase font-bold text-[10px] tracking-wider px-4 py-2 rounded-none transition-colors cursor-pointer"
-                                >
-                                  Entregar Combo / Producto
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {scanError && (
-              <div className="bg-surface border border-rose-500/30 p-6 shadow-md flex items-center gap-3 animate-fade-in rounded-none">
-                <div className="text-xl">✕</div>
-                <div className="text-left">
-                  <h3 className="text-rose-400 font-sans uppercase font-bold text-sm tracking-tight">Error de Validación</h3>
-                  <p className="text-secondaryText font-mono text-[10px] uppercase mt-1">{scanError}</p>
-                </div>
-              </div>
-            )}
-            </div>
-          </div>
-        )}
-
-        {/* ==================================================================== */}
         {/* CATALOGS / CONFIGURATION TAB */}
         {/* ==================================================================== */}
         {activeTab === 'config' && (
@@ -1492,9 +1323,239 @@ export default function App({ onBack }: AppProps) {
         )}
       </main>
 
-      {/* ==================================================================== */}
-      {/* MODALS / DRAWERS */}
-      {/* ==================================================================== */}
+      {/* SCANNER DRAWER */}
+      {showScannerDrawer && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex justify-end z-50 animate-fade-in">
+          <div className="w-full tickets-drawer-wide bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden animate-fade-in">
+            {/* Drawer Header */}
+            <div className="flex justify-between items-center border-b border-divider pb-4 shrink-0">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#FF8000] font-sans">Escanear Ticket QR</h2>
+                <p className="text-[9px] text-secondaryText font-mono uppercase mt-0.5">Control de acreditación y canje de productos en tiempo real</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowScannerDrawer(false);
+                  setIsCameraActive(false);
+                }} 
+                className="text-secondaryText hover:text-white font-bold font-mono text-sm cursor-pointer w-8 h-8 flex items-center justify-center hover:bg-inputBg transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Drawer Body (Scrollable content) */}
+            <div className="flex-grow overflow-y-auto py-6 space-y-6 custom-scrollbar text-left">
+              {/* Camera Scanner Area */}
+              <div className="bg-canvas border border-divider p-4 flex flex-col items-center rounded-none relative">
+                {/* Virtual Scanner Screen */}
+                <div className="w-full h-64 bg-black rounded-none relative overflow-hidden flex flex-col items-center justify-center border-2 border-divider">
+                  {/* Keep qr-reader mounted in DOM, but hide it if camera is inactive */}
+                  <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
+                    <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
+                  </div>
+
+                  {/* Decorative overlay overlaying the video feed */}
+                  {isCameraActive && (
+                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-black/25 z-10">
+                      <div className="w-36 h-36 border-2 border-dashed border-[#FF8000] rounded-none relative flex items-center justify-center">
+                        <div className="absolute w-full h-[1.5px] bg-[#FF8000] top-1/2 left-0 animate-[pulse_1.5s_infinite] shadow-lg"></div>
+                      </div>
+                      <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/90 px-2 py-0.5 border border-divider mt-3">
+                        Lente Activo...
+                      </span>
+                    </div>
+                  )}
+
+                  {!isCameraActive && (
+                    <>
+                      <span className="text-secondaryText text-[10px] font-mono uppercase tracking-wider opacity-60">Cámara Inactiva</span>
+                      <button
+                        onClick={() => setIsCameraActive(true)}
+                        className="mt-3 bg-[#FF8000] text-canvas px-4 py-2 rounded-none font-mono uppercase font-bold text-[9px] tracking-wider hover:bg-opacity-90 transition-all cursor-pointer"
+                      >
+                        Reactivar Cámara
+                      </button>
+                    </>
+                  )}
+
+                  {/* Corner Accents */}
+                  <div className="absolute top-3 left-3 w-3 h-3 border-t-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
+                  <div className="absolute top-3 right-3 w-3 h-3 border-t-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
+                  <div className="absolute bottom-3 left-3 w-3 h-3 border-b-2 border-l-2 border-[#FF8000] pointer-events-none z-10"></div>
+                  <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
+                </div>
+
+                {/* Manual input simulation */}
+                <div className="w-full mt-4 space-y-1.5">
+                  <label className="text-[9px] font-mono font-bold text-mutedText uppercase tracking-wider block">
+                    Digitar Código Manual (Simular escaneo)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Ej. EVT-123456"
+                      value={scanCodeInput}
+                      onChange={(e) => setScanCodeInput(e.target.value)}
+                      className="flex-1 bg-inputBg border border-divider px-3 py-2 text-[11px] text-primaryText font-mono uppercase focus:border-secondaryText focus:outline-none rounded-none"
+                    />
+                    <button
+                      onClick={() => {
+                        handleScanValidate(scanCodeInput.trim().toUpperCase());
+                      }}
+                      disabled={isScanning || !scanCodeInput}
+                      className="bg-inputBg hover:bg-divider border border-divider text-[#FF8000] px-4 py-2 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {isScanning ? 'Validando...' : 'Buscar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Validation Result Screen */}
+              {scannedResult && (() => {
+                const { registration, items } = scannedResult;
+                const isCheckedIn = registration.status === 'checked_in';
+                const isCanceled = registration.status === 'canceled';
+                const hasItems = items && items.length > 0;
+                const allItemsClaimed = hasItems && items.every((it: any) => it.status === 'claimed');
+                
+                return (
+                  <div className="space-y-4">
+                    {/* Status Box */}
+                    <div className={`border p-4 rounded-none animate-fade-in ${
+                      isCheckedIn 
+                        ? 'bg-[#1F1414] border-rose-500/30 text-rose-400' 
+                        : isCanceled
+                        ? 'bg-surface border-divider text-mutedText'
+                        : 'bg-[#141A16] border-emerald-500/30 text-emerald-400'
+                    }`}>
+                      <h3 className="text-xs font-bold uppercase tracking-wider font-mono">
+                        {isCheckedIn 
+                          ? '⚠️ TICKET YA ACREDITADO (DENTRO)' 
+                          : isCanceled
+                          ? '🛑 TICKET CANCELADO / INVÁLIDO'
+                          : '✓ ENTRADA VÁLIDA — PENDIENTE'}
+                      </h3>
+                      <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">
+                        Código: <span className="font-mono font-bold text-primaryText">{registration.ticket_code}</span>
+                      </p>
+                    </div>
+
+                    {/* Attendee details */}
+                    <div className="bg-surface border border-divider p-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3 text-[11px]">
+                        <div>
+                          <span className="text-[8px] text-mutedText block font-mono uppercase tracking-wider">Acreditado</span>
+                          <span className="font-semibold text-primaryText uppercase">{registration.buyer_name}</span>
+                          <span className="text-[9px] text-mutedText block font-mono lowercase truncate">{registration.buyer_email}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-mutedText block font-mono uppercase tracking-wider">Evento</span>
+                          <span className="font-semibold text-primaryText uppercase truncate block">{registration.events?.name}</span>
+                          <span className="text-[9px] text-mutedText block font-mono">Fecha: {registration.events?.date && new Date(registration.events.date).toLocaleDateString('es-ES')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pending check-in button */}
+                    {!isCheckedIn && !isCanceled && (
+                      <button
+                        onClick={() => handleConfirmAcreditacion(registration.id)}
+                        disabled={isCheckingIn}
+                        className="w-full bg-[#FF8000] text-canvas py-3 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {isCheckingIn ? 'Registrando Acceso...' : 'Confirmar Acreditación e Ingresar'}
+                      </button>
+                    )}
+
+                    {/* Products / Items Section */}
+                    {isCheckedIn && (
+                      <div className="border border-divider p-4 bg-surface space-y-3">
+                        <div className="flex justify-between items-center border-b border-divider pb-2">
+                          <h4 className="text-[9px] font-mono font-bold text-mutedText uppercase tracking-wider">
+                            Entregas y Productos Asociados
+                          </h4>
+                          <span className="px-1.5 py-0.5 border text-[8px] font-mono font-bold bg-[#FF8000]/10 border-[#FF8000]/20 text-[#FF8000] uppercase">
+                            Check-in OK
+                          </span>
+                        </div>
+
+                        {!hasItems ? (
+                          /* No products associated */
+                          <div className="bg-canvas border border-divider/60 p-3 text-center">
+                            <span className="text-[10px] text-secondaryText font-mono uppercase italic">
+                              Este ticket no tiene productos ni combos asignados.
+                            </span>
+                          </div>
+                        ) : allItemsClaimed ? (
+                          /* All products claimed */
+                          <div className="bg-[#141A16] border border-emerald-500/20 p-3 text-left">
+                            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold block">✓ Todo Canjeado</span>
+                            <span className="text-[9px] font-mono text-secondaryText mt-1 block leading-normal">
+                              Todos los productos y combos de este ticket ya fueron entregados al acreditado.
+                            </span>
+                          </div>
+                        ) : (
+                          /* Pending products to deliver */
+                          <div className="space-y-2">
+                            {items.map(item => (
+                              <div key={item.id} className="flex justify-between items-center p-3 bg-canvas border border-divider rounded-none">
+                                <div className="text-left min-w-0 pr-2">
+                                  <div className="font-bold text-primaryText text-xs truncate">{item.event_items?.name}</div>
+                                  <div className="text-[9px] text-secondaryText font-mono mt-0.5 truncate">{item.event_items?.description || 'Sin descripción'}</div>
+                                </div>
+                                <div className="shrink-0">
+                                  {item.status === 'claimed' ? (
+                                    <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-2 py-0.5 rounded-none">
+                                      ✓ Entregado
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleClaimItem(item.id)}
+                                      className="bg-emerald-600 hover:bg-emerald-500 text-canvas font-mono uppercase font-bold text-[9px] tracking-wider px-3 py-1.5 rounded-none transition-colors cursor-pointer"
+                                    >
+                                      Canjear
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Scan Error box */}
+              {scanError && (
+                <div className="bg-surface border border-rose-500/30 p-4 shadow-md flex items-center gap-3 animate-fade-in rounded-none text-left">
+                  <div className="text-rose-400 font-bold text-lg">✕</div>
+                  <div>
+                    <h3 className="text-rose-400 font-sans uppercase font-bold text-xs tracking-tight">Error de Validación</h3>
+                    <p className="text-secondaryText font-mono text-[9px] uppercase mt-0.5 leading-normal">{scanError}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="border-t border-divider pt-4 mt-auto shrink-0 flex justify-end">
+              <button 
+                onClick={() => {
+                  setShowScannerDrawer(false);
+                  setIsCameraActive(false);
+                }} 
+                className="bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white px-4 py-2.5 rounded-none font-mono uppercase font-bold text-[10px] tracking-wider transition-all cursor-pointer"
+              >
+                Cerrar Panel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CREATE EVENT MODAL (Drawer style) */}
       {showEventModal && (
