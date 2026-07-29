@@ -72,6 +72,9 @@ export default function App({ onBack }: AppProps) {
   const [showTicketDesigner, setShowTicketDesigner] = useState<Event | null>(null);
   const [showScannerDrawer, setShowScannerDrawer] = useState<boolean>(false);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   // Scanner Operational UI states
   const [scanCodeInput, setScanCodeInput] = useState<string>('');
   const [scannedResult, setScannedResult] = useState<{
@@ -951,6 +954,17 @@ export default function App({ onBack }: AppProps) {
     );
   }
 
+  const filteredRegistrations = registrations.filter(reg => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    return (
+      (reg.buyer_name && reg.buyer_name.toLowerCase().includes(query)) ||
+      (reg.buyer_email && reg.buyer_email.toLowerCase().includes(query)) ||
+      (reg.ticket_code && reg.ticket_code.toLowerCase().includes(query)) ||
+      (reg.events?.name && reg.events.name.toLowerCase().includes(query))
+    );
+  });
+
   return (
     <div className="flex-grow flex overflow-hidden bg-canvas text-primaryText antialiased">
       {/* Toast Alert */}
@@ -1129,7 +1143,16 @@ export default function App({ onBack }: AppProps) {
                 <h2 className="text-xl font-medium uppercase tracking-tight text-primaryText">Registro de Entradas</h2>
                 <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-secondaryText mt-1">Visualiza tickets emitidos y canje de combos asociados</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch shrink-0">
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar por nombre, ticket..." 
+                    className="p-2.5 bg-surface text-primaryText thin-border font-mono text-xs focus-ring rounded-none min-w-[240px]"
+                  />
+                </div>
                 <button
                   onClick={() => {
                     setScanCodeInput('');
@@ -1137,12 +1160,12 @@ export default function App({ onBack }: AppProps) {
                     setScannedResult(null);
                     setShowScannerDrawer(true);
                   }}
-                  className="bg-inputBg border border-divider hover:border-secondaryText text-[#FF8000] px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                  className="bg-inputBg border border-divider hover:border-secondaryText text-[#FF8000] px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                   </svg>
-                  Escanear QR
+                  QR
                 </button>
                 <button
                   onClick={() => {
@@ -1152,21 +1175,25 @@ export default function App({ onBack }: AppProps) {
                     }
                     setShowRegModal(true);
                   }}
-                  className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
+                  className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
-                  Emitir Entrada
+                  Emitir Ticket
                 </button>
               </div>
             </div>
 
-            {registrations.length === 0 ? (
+            {filteredRegistrations.length === 0 ? (
               <div className="bg-surface border border-divider p-12 text-center rounded-none">
-                <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans mb-1">No hay acreditados</h3>
-                <p className="text-[10px] text-secondaryText font-mono uppercase max-w-sm mx-auto">Registra participantes manualmente o simula una venta.</p>
+                <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans mb-1">
+                  {searchQuery ? 'No se encontraron resultados' : 'No hay acreditados'}
+                </h3>
+                <p className="text-[10px] text-secondaryText font-mono uppercase max-w-sm mx-auto">
+                  {searchQuery ? 'Prueba con otro término de búsqueda.' : 'Registra participantes manualmente o simula una venta.'}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {registrations.map(reg => (
+                {filteredRegistrations.map(reg => (
                   <div
                     key={reg.id}
                     className="w-full bg-surface border border-divider p-5 tickets-registration-card-grid rounded-none relative group hover:bg-[#18191E]/40 transition-colors"
