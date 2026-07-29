@@ -1510,7 +1510,7 @@ export default function App({ onBack }: AppProps) {
                       <button
                         onClick={() => handleConfirmAcreditacion(registration.id)}
                         disabled={isCheckingIn}
-                        className="w-full bg-[#FF8000] text-canvas py-4 rounded-none font-mono uppercase font-bold text-xs tracking-[0.15em] transition-all hover:bg-opacity-95 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                        className="tickets-btn-accreditation"
                       >
                         {isCheckingIn ? (
                           <>
@@ -1564,13 +1564,13 @@ export default function App({ onBack }: AppProps) {
                                 </div>
                                 <div className="shrink-0 ml-4">
                                   {item.status === 'claimed' ? (
-                                    <div className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-3 py-1.5 rounded-none">
+                                    <div className="tickets-badge-claimed">
                                       ✓ Entregado
                                     </div>
                                   ) : (
                                     <button
                                       onClick={() => handleClaimItem(item.id)}
-                                      className="bg-emerald-600 hover:bg-emerald-500 text-canvas font-mono uppercase font-bold text-[10px] tracking-wider px-5 py-2.5 rounded-none transition-colors cursor-pointer"
+                                      className="tickets-btn-redeem"
                                     >
                                       Canjear
                                     </button>

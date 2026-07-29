@@ -171,3 +171,69 @@
     aspect-ratio: 4 / 3 !important; /* Slightly taller on mobile screens for better portrait scanning */
   }
 }
+
+/* Custom premium buttons & badges for Scanner Drawer (Estrategia 2 - Native CSS) */
+.tickets-btn-accreditation {
+  width: 100% !important;
+  background-color: #FF8000 !important;
+  color: #0d0e12 !important;
+  padding: 16px 24px !important;
+  border: none !important;
+  border-radius: 0px !important;
+  font-family: monospace !important;
+  text-transform: uppercase !important;
+  font-weight: bold !important;
+  font-size: 12px !important;
+  letter-spacing: 0.15em !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.tickets-btn-accreditation:hover {
+  opacity: 0.95 !important;
+}
+
+.tickets-btn-accreditation:active {
+  transform: scale(0.99) !important;
+}
+
+.tickets-btn-redeem {
+  background-color: #10b981 !important;
+  color: #0d0e12 !important;
+  padding: 10px 20px !important;
+  border: none !important;
+  border-radius: 0px !important;
+  font-family: monospace !important;
+  text-transform: uppercase !important;
+  font-weight: bold !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-block !important;
+  text-align: center !important;
+}
+
+.tickets-btn-redeem:hover {
+  background-color: #059669 !important;
+}
+
+.tickets-badge-claimed {
+  display: inline-block !important;
+  font-size: 9px !important;
+  font-family: monospace !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: #34d399 !important;
+  background-color: rgba(6, 78, 59, 0.4) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  padding: 6px 12px !important;
+  border-radius: 0px !important;
+  text-align: center !important;
+}
