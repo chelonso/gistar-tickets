@@ -657,8 +657,8 @@ export default function App({ onBack }: AppProps) {
   const handleCreateRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     const eventId = regForm.event_id || selectedEventId;
-    if (!eventId || !regForm.buyer_name || !regForm.buyer_email) {
-      showToast('Completa los campos de registro', 'error');
+    if (!eventId || !regForm.buyer_name) {
+      showToast('Completa los campos obligatorios', 'error');
       return;
     }
 
@@ -1154,7 +1154,7 @@ export default function App({ onBack }: AppProps) {
                   }}
                   className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
                 >
-                  Emitir Entrada (Manual)
+                  Emitir Entrada
                 </button>
               </div>
             </div>
@@ -1190,7 +1190,7 @@ export default function App({ onBack }: AppProps) {
                           {reg.buyer_name}
                         </div>
                         <div className="text-[10px] font-mono text-mutedText mt-0.5 truncate">
-                          ✉ {reg.buyer_email}
+                          ✉ {reg.buyer_email || 'sin correo'}
                         </div>
                       </div>
                     </div>
@@ -1493,7 +1493,7 @@ export default function App({ onBack }: AppProps) {
                         <div className="space-y-1">
                           <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Nombre del Acreditado</span>
                           <span className="font-bold text-primaryText text-sm uppercase">{registration.buyer_name}</span>
-                          <span className="text-[10px] text-secondaryText font-mono lowercase block">{registration.buyer_email}</span>
+                          <span className="text-[10px] text-secondaryText font-mono lowercase block">{registration.buyer_email || 'sin correo'}</span>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[9px] text-mutedText block font-mono uppercase tracking-wider">Evento Registrado</span>
@@ -1907,10 +1907,9 @@ export default function App({ onBack }: AppProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Correo Electrónico *</label>
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Correo Electrónico (Opcional)</label>
                   <input
                     type="email"
-                    required
                     value={regForm.buyer_email}
                     onChange={(e) => setRegForm({ ...regForm, buyer_email: e.target.value })}
                     className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none"
