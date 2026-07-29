@@ -143,11 +143,17 @@ export default function App({ onBack }: AppProps) {
     is_active: true
   });
 
-  const [regForm, setRegForm] = useState({
+  const [regForm, setRegForm] = useState<{
+    id?: string;
+    event_id: string;
+    buyer_name: string;
+    buyer_email: string;
+    selected_items: string[];
+  }>({
     event_id: '',
     buyer_name: '',
     buyer_email: '',
-    selected_items: [] as string[] // Selected event_item_ids
+    selected_items: []
   });
 
   // Canvas ref for composition preview
@@ -716,9 +722,6 @@ export default function App({ onBack }: AppProps) {
     try {
       const res = await fetch(`${gatewayUrl}/rest/v1/event_items?id=eq.${itemId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         credentials: 'include'
       });
 
@@ -818,6 +821,7 @@ export default function App({ onBack }: AppProps) {
       showToast('Ticket registrado con éxito', 'success');
       setShowRegModal(false);
       setRegForm({
+        id: undefined,
         event_id: '',
         buyer_name: '',
         buyer_email: '',
@@ -826,6 +830,138 @@ export default function App({ onBack }: AppProps) {
       await loadRegistrations();
     } catch (err: any) {
       showToast('Error registrando ticket: ' + err.message, 'error');
+    }
+  };
+
+  const handleUpdateRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regForm.id || !regForm.buyer_name) {
+      showToast('Completa los campos obligatorios', 'error');
+      return;
+    }
+
+    try {
+      // 1. Update registrations name & email
+      const regRes = await fetch(`${gatewayUrl}/rest/v1/registrations?id=eq.${regForm.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          buyer_name: regForm.buyer_name,
+          buyer_email: regForm.buyer_email || null,
+          updated_at: new Date().toISOString()
+        }),
+        credentials: 'include'
+      });
+
+      if (!regRes.ok) throw new Error(await regRes.text());
+
+      // 2. Fetch existing items to preserve claim status
+      const existRes = await fetch(`${gatewayUrl}/rest/v1/registration_items?registration_id=eq.${regForm.id}&select=event_item_id,status`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      const statusMap: Record<string, string> = {};
+      if (existRes.ok) {
+        const existItems = await existRes.json();
+        existItems.forEach((item: any) => {
+          statusMap[item.event_item_id] = item.status;
+        });
+      }
+
+      // 3. Delete existing registration items
+      const delRes = await fetch(`${gatewayUrl}/rest/v1/registration_items?registration_id=eq.${regForm.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!delRes.ok) throw new Error(await delRes.text());
+
+      // 4. Insert updated registration items list
+      if (regForm.selected_items.length > 0) {
+        const itemsToInsert = regForm.selected_items.map(itemId => ({
+          registration_id: regForm.id,
+          event_item_id: itemId,
+          status: statusMap[itemId] || 'pending',
+          tenant_id: tenantId
+        }));
+
+        const insRes = await fetch(`${gatewayUrl}/rest/v1/registration_items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(itemsToInsert),
+          credentials: 'include'
+        });
+        if (!insRes.ok) throw new Error(await insRes.text());
+      }
+
+      showToast('Ticket actualizado con éxito', 'success');
+      setShowRegModal(false);
+      
+      setRegForm({
+        id: undefined,
+        event_id: '',
+        buyer_name: '',
+        buyer_email: '',
+        selected_items: []
+      });
+
+      await loadRegistrations();
+    } catch (err: any) {
+      showToast('Error al actualizar ticket: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteRegistration = async (regId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este ticket? Esto cancelará y eliminará la acreditación y sus entregas asociadas.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?id=eq.${regId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        showToast('Ticket eliminado con éxito', 'success');
+        await loadRegistrations();
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch (err: any) {
+      showToast('Error al eliminar ticket: ' + err.message, 'error');
+    }
+  };
+
+  const handleEditRegistration = async (reg: Registration) => {
+    try {
+      const res = await fetch(`${gatewayUrl}/rest/v1/registration_items?registration_id=eq.${reg.id}&select=event_item_id`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const items = await res.json();
+        const selectedItemIds = items.map((i: any) => i.event_item_id);
+        
+        setRegForm({
+          id: reg.id,
+          event_id: reg.event_id,
+          buyer_name: reg.buyer_name,
+          buyer_email: reg.buyer_email || '',
+          selected_items: selectedItemIds
+        });
+        
+        await loadEventItems(reg.event_id);
+        setShowRegModal(true);
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch (err: any) {
+      showToast('Error al cargar datos del ticket: ' + err.message, 'error');
     }
   };
 
@@ -1362,7 +1498,7 @@ export default function App({ onBack }: AppProps) {
                     </div>
 
                     {/* Col 5: Actions */}
-                    <div className="flex w-full justify-start md:justify-end border-t md:border-t-0 border-divider pt-3 md:pt-0">
+                    <div className="flex w-full justify-start md:justify-end border-t md:border-t-0 border-divider pt-3 md:pt-0 gap-2">
                       <button
                         onClick={() => handleDrawTicket(reg.events!, reg.ticket_code)}
                         className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white cursor-pointer transition-colors"
@@ -1371,6 +1507,24 @@ export default function App({ onBack }: AppProps) {
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleEditRegistration(reg)}
+                        className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white cursor-pointer transition-colors"
+                        title="Editar Ticket"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRegistration(reg.id)}
+                        className="p-1.5 bg-inputBg hover:bg-rose-950/20 border border-divider hover:border-rose-900/30 text-secondaryText hover:text-rose-400 cursor-pointer transition-colors"
+                        title="Eliminar Ticket"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
@@ -2039,19 +2193,20 @@ export default function App({ onBack }: AppProps) {
           <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
             <div className="flex-grow flex flex-col min-h-0">
               <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
-                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Registrar / Emitir Ticket</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">{regForm.id ? 'Editar Ticket Acreditado' : 'Registrar / Emitir Ticket'}</h2>
                 <button onClick={() => setShowRegModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
               </div>
-              <form onSubmit={handleCreateRegistration} className="space-y-4 text-left overflow-y-auto flex-grow pr-2 custom-scrollbar">
+              <form onSubmit={regForm.id ? handleUpdateRegistration : handleCreateRegistration} className="space-y-4 text-left overflow-y-auto flex-grow pr-2 custom-scrollbar">
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Seleccionar Evento *</label>
                   <select
+                    disabled={!!regForm.id}
                     value={regForm.event_id || selectedEventId}
                     onChange={(e) => {
                       setRegForm({ ...regForm, event_id: e.target.value });
                       loadEventItems(e.target.value);
                     }}
-                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer"
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {events.map(ev => (
                       <option key={ev.id} value={ev.id}>{ev.name}</option>
@@ -2118,10 +2273,10 @@ export default function App({ onBack }: AppProps) {
                  Cancelar
                </button>
                <button
-                 onClick={handleCreateRegistration}
-                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
+                 onClick={regForm.id ? handleUpdateRegistration : handleCreateRegistration}
+                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] cursor-pointer text-center"
                >
-                 Emitir Ticket
+                 {regForm.id ? 'Guardar Cambios' : 'Emitir Ticket'}
                </button>
              </div>
           </div>
