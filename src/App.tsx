@@ -1353,7 +1353,7 @@ export default function App({ onBack }: AppProps) {
             </div>
 
             {/* Drawer Body (Scrollable content) */}
-            <div className="flex-grow overflow-y-auto py-6 space-y-6 custom-scrollbar text-left">
+            <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar text-left">
               {/* PAGE 1: SCANNER SCREEN (Kept mounted, but hidden/shown dynamically) */}
               <div 
                 style={{ display: drawerSubView === 'scan' ? 'block' : 'none' }} 
