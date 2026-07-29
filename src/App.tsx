@@ -128,7 +128,14 @@ export default function App({ onBack }: AppProps) {
     }
   });
 
-  const [itemForm, setItemForm] = useState({
+  const [itemForm, setItemForm] = useState<{
+    id?: string;
+    event_id: string;
+    name: string;
+    price: string;
+    description: string;
+    is_active: boolean;
+  }>({
     event_id: '',
     name: '',
     price: '',
@@ -642,6 +649,7 @@ export default function App({ onBack }: AppProps) {
         showToast('Producto agregado al catálogo', 'success');
         setShowItemModal(false);
         setItemForm({
+          id: undefined,
           event_id: '',
           name: '',
           price: '',
@@ -655,6 +663,100 @@ export default function App({ onBack }: AppProps) {
     } catch (err: any) {
       showToast('Error creando producto: ' + err.message, 'error');
     }
+  };
+
+  const handleUpdateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const eventId = itemForm.event_id || selectedEventId;
+    if (!itemForm.id || !eventId || !itemForm.name || !itemForm.price) {
+      showToast('Completa los campos obligatorios', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${gatewayUrl}/rest/v1/event_items?id=eq.${itemForm.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: itemForm.name,
+          price: parseFloat(itemForm.price),
+          description: itemForm.description || null,
+          is_active: itemForm.is_active
+        }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        showToast('Producto actualizado', 'success');
+        setShowItemModal(false);
+        setItemForm({
+          id: undefined,
+          event_id: '',
+          name: '',
+          price: '',
+          description: '',
+          is_active: true
+        });
+        await loadEventItems(eventId);
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch (err: any) {
+      showToast('Error al actualizar producto: ' + err.message, 'error');
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este producto/combo del catálogo?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${gatewayUrl}/rest/v1/event_items?id=eq.${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        showToast('Producto eliminado del catálogo', 'success');
+        if (selectedEventId) {
+          await loadEventItems(selectedEventId);
+        }
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch (err: any) {
+      showToast('Error al eliminar producto: ' + err.message, 'error');
+    }
+  };
+
+  const handleEditItem = (item: EventItem) => {
+    setItemForm({
+      id: item.id,
+      event_id: item.event_id,
+      name: item.name,
+      price: item.price.toString(),
+      description: item.description || '',
+      is_active: item.is_active
+    });
+    setShowItemModal(true);
+  };
+
+  const handleNewItem = () => {
+    setItemForm({
+      id: undefined,
+      event_id: selectedEventId,
+      name: '',
+      price: '',
+      description: '',
+      is_active: true
+    });
+    setShowItemModal(true);
   };
 
   const handleCreateRegistration = async (e: React.FormEvent) => {
@@ -1306,7 +1408,7 @@ export default function App({ onBack }: AppProps) {
                       showToast('Debes seleccionar o crear un evento', 'error');
                       return;
                     }
-                    setShowItemModal(true);
+                    handleNewItem();
                   }}
                   className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center gap-2 cursor-pointer"
                 >
@@ -1329,6 +1431,7 @@ export default function App({ onBack }: AppProps) {
                       <th className="px-6 py-4">Precio</th>
                       <th className="px-6 py-4">Descripción</th>
                       <th className="px-6 py-4">Estado</th>
+                      <th className="px-6 py-4 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-divider/55 text-xs text-secondaryText font-sans">
@@ -1347,6 +1450,28 @@ export default function App({ onBack }: AppProps) {
                           }`}>
                             {item.is_active ? 'Activo' : 'Inactivo'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleEditItem(item)}
+                              className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white cursor-pointer transition-colors"
+                              title="Editar Producto"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-1.5 bg-inputBg hover:bg-rose-950/20 border border-divider hover:border-rose-900/30 text-secondaryText hover:text-rose-400 cursor-pointer transition-colors"
+                              title="Eliminar Producto"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1841,10 +1966,10 @@ export default function App({ onBack }: AppProps) {
           <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
             <div>
               <div className="flex justify-between items-center mb-6 border-b border-divider pb-4">
-                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Agregar Producto / Combo</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">{itemForm.id ? 'Editar Producto / Combo' : 'Agregar Producto / Combo'}</h2>
                 <button onClick={() => setShowItemModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
               </div>
-              <form onSubmit={handleCreateItem} className="space-y-4 text-left">
+              <form onSubmit={itemForm.id ? handleUpdateItem : handleCreateItem} className="space-y-4 text-left">
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Combo *</label>
                   <input
@@ -1877,6 +2002,17 @@ export default function App({ onBack }: AppProps) {
                     rows={4}
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Estado</label>
+                  <select
+                    value={itemForm.is_active ? 'true' : 'false'}
+                    onChange={(e) => setItemForm({ ...itemForm, is_active: e.target.value === 'true' })}
+                    className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer"
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
+                </div>
               </form>
             </div>
              <div className="flex gap-3 mt-8">
@@ -1887,10 +2023,10 @@ export default function App({ onBack }: AppProps) {
                  Cancelar
                </button>
                <button
-                 onClick={handleCreateItem}
-                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
+                 onClick={itemForm.id ? handleUpdateItem : handleCreateItem}
+                 className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] cursor-pointer"
                >
-                 Añadir Producto
+                 {itemForm.id ? 'Guardar Cambios' : 'Agregar Producto'}
                </button>
              </div>
           </div>
