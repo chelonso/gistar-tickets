@@ -1901,12 +1901,12 @@ export default function App({ onBack }: AppProps) {
       {showRegModal && (
         <div className="fixed inset-0 z-50 bg-canvas/60 backdrop-blur-xs flex justify-end">
           <div className="w-full max-w-md bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText">
-            <div>
-              <div className="flex justify-between items-center mb-6 border-b border-divider pb-4">
+            <div className="flex-grow flex flex-col min-h-0">
+              <div className="flex justify-between items-center mb-6 border-b border-divider pb-4 shrink-0">
                 <h2 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans">Registrar / Emitir Ticket</h2>
                 <button onClick={() => setShowRegModal(false)} className="text-secondaryText hover:text-white font-mono text-base cursor-pointer">✕</button>
               </div>
-              <form onSubmit={handleCreateRegistration} className="space-y-4 text-left">
+              <form onSubmit={handleCreateRegistration} className="space-y-4 text-left overflow-y-auto flex-grow pr-2 custom-scrollbar">
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Seleccionar Evento *</label>
                   <select
@@ -1949,7 +1949,7 @@ export default function App({ onBack }: AppProps) {
                   {eventItems.length === 0 ? (
                     <p className="text-[10px] text-secondaryText font-mono uppercase italic">No hay productos en catálogo para este evento.</p>
                   ) : (
-                    <div className="space-y-1 max-h-40 overflow-y-auto border border-divider p-2 bg-inputBg rounded-none">
+                    <div className="space-y-1 border border-divider p-2 bg-inputBg rounded-none" style={{ maxHeight: '180px', overflowY: 'auto' }}>
                       {eventItems.map(item => (
                         <label key={item.id} className="flex items-center gap-2 p-2 hover:bg-divider rounded-none text-xs cursor-pointer">
                           <input
@@ -1974,7 +1974,7 @@ export default function App({ onBack }: AppProps) {
                 </div>
               </form>
             </div>
-             <div className="flex gap-3 mt-8">
+             <div className="flex gap-3 mt-8 shrink-0">
                <button
                  onClick={() => setShowRegModal(false)}
                  className="flex-1 bg-inputBg hover:bg-divider text-secondaryText py-3 px-4 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer text-center"
@@ -1985,7 +1985,7 @@ export default function App({ onBack }: AppProps) {
                  onClick={handleCreateRegistration}
                  className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-colors cursor-pointer text-center"
                >
-                 Emitir Entrada
+                 Emitir Ticket
                </button>
              </div>
           </div>
