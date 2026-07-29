@@ -1949,7 +1949,7 @@ export default function App({ onBack }: AppProps) {
                   {eventItems.length === 0 ? (
                     <p className="text-[10px] text-secondaryText font-mono uppercase italic">No hay productos en catálogo para este evento.</p>
                   ) : (
-                    <div className="space-y-1 border border-divider p-2 bg-inputBg rounded-none" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                    <div className="space-y-1 border border-divider p-2 bg-inputBg rounded-none custom-scrollbar" style={{ maxHeight: '180px', overflowY: 'auto' }}>
                       {eventItems.map(item => (
                         <label key={item.id} className="flex items-center gap-2 p-2 hover:bg-divider rounded-none text-xs cursor-pointer">
                           <input

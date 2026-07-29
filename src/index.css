@@ -237,3 +237,18 @@
   border-radius: 0px !important;
   text-align: center !important;
 }
+
+/* Sleek custom scrollbars for the Tickets app */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0D0E11 !important;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #232429 !important;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3a3b42 !important;
+}
