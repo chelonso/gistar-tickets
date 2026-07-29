@@ -1038,10 +1038,10 @@ export default function App({ onBack }: AppProps) {
         {/* ==================================================================== */}
         {activeTab === 'events' && (
           <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
-            <div className="flex justify-between items-center border-b border-divider pb-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-divider pb-4 gap-4">
               <div>
-                <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Eventos Registrados</h1>
-                <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Administra los eventos de acreditación de tu organización</p>
+                <h2 className="text-xl font-medium uppercase tracking-tight text-primaryText">Eventos Registrados</h2>
+                <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-secondaryText mt-1">Administra los eventos de acreditación de tu organización</p>
               </div>
               <button
                 onClick={() => setShowEventModal(true)}
@@ -1124,10 +1124,10 @@ export default function App({ onBack }: AppProps) {
         {/* ==================================================================== */}
         {activeTab === 'registrations' && (
           <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
-            <div className="flex justify-between items-center border-b border-divider pb-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-divider pb-4 gap-4">
               <div>
-                <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Registro de Entradas</h1>
-                <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Visualiza tickets emitidos y canje de combos asociados</p>
+                <h2 className="text-xl font-medium uppercase tracking-tight text-primaryText">Registro de Entradas</h2>
+                <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-secondaryText mt-1">Visualiza tickets emitidos y canje de combos asociados</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -1258,10 +1258,10 @@ export default function App({ onBack }: AppProps) {
         {/* ==================================================================== */}
         {activeTab === 'config' && (
           <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
-            <div className="flex justify-between items-center border-b border-divider pb-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-divider pb-4 gap-4">
               <div>
-                <h1 className="text-lg font-semibold uppercase tracking-tight text-primaryText font-sans">Catálogo de Eventos</h1>
-                <p className="text-[10px] text-secondaryText font-mono uppercase mt-1">Gestiona los combos, productos y precios asociados a tus eventos</p>
+                <h2 className="text-xl font-medium uppercase tracking-tight text-primaryText">Catálogo de Eventos</h2>
+                <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-secondaryText mt-1">Gestiona los combos, productos y precios asociados a tus eventos</p>
               </div>
               <div className="flex gap-3">
                 <select
