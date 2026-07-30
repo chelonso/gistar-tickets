@@ -69,7 +69,7 @@ export default function App({ onBack }: AppProps) {
   const [showEventModal, setShowEventModal] = useState<boolean>(false);
   const [showItemModal, setShowItemModal] = useState<boolean>(false);
   const [showRegModal, setShowRegModal] = useState<boolean>(false);
-  const [showTicketDesigner, setShowTicketDesigner] = useState<Event | null>(null);
+  const [showTicketDesigner, setShowTicketDesigner] = useState<{ event: Event, ticketCode: string } | null>(null);
   const [showScannerDrawer, setShowScannerDrawer] = useState<boolean>(false);
 
   // Search state
@@ -1116,7 +1116,7 @@ export default function App({ onBack }: AppProps) {
 
   // Composes ticket base image + QR code into Canvas preview
   const handleDrawTicket = (event: Event, ticketCode: string) => {
-    setShowTicketDesigner(event);
+    setShowTicketDesigner({ event, ticketCode });
     setTimeout(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -1181,6 +1181,92 @@ export default function App({ onBack }: AppProps) {
           });
       };
     }, 100);
+  };
+
+  const handleDownloadTicketDirectly = (event: Event, ticketCode: string) => {
+    showToast('Generando ticket para descarga...', 'info');
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      showToast('Error al inicializar canvas de descarga', 'error');
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = event.base_image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60';
+    
+    img.onload = () => {
+      const imgWidth = img.naturalWidth || 600;
+      const imgHeight = img.naturalHeight || 200;
+      
+      canvas.width = imgWidth;
+      canvas.height = imgHeight;
+      
+      ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+
+      const qrConfig = event.qr_config?.qr || {};
+      const codeConfig = event.qr_config?.code || {};
+      const nameConfig = event.qr_config?.name || {};
+
+      // Draw Code
+      const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+      const codeColor = codeConfig.color || '#FFFFFF';
+      const codeX = Number(codeConfig.x) ?? (imgWidth * 0.05);
+      const codeY = Number(codeConfig.y) ?? (imgHeight * 0.88);
+
+      ctx.fillStyle = codeColor;
+      ctx.font = `bold ${codeSize}px Courier New`;
+      ctx.fillText(`COD: ${ticketCode}`, codeX, codeY);
+
+      // Draw Name
+      const nameSize = Number(nameConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+      const nameColor = nameConfig.color || '#FFFFFF';
+      const nameX = Number(nameConfig.x) ?? (imgWidth * 0.05);
+      const nameY = Number(nameConfig.y) ?? (imgHeight * 0.22);
+
+      ctx.fillStyle = nameColor;
+      ctx.font = `bold ${nameSize}px Courier New`;
+      ctx.fillText(event.name.toUpperCase(), nameX, nameY);
+
+      // Draw QR
+      const qrSize = Number(qrConfig.size || event.qr_config?.size) || 100;
+      const qrX = Number(qrConfig.x ?? event.qr_config?.x ?? (imgWidth - qrSize - 30));
+      const qrY = Number(qrConfig.y ?? event.qr_config?.y ?? (imgHeight - qrSize - 30));
+
+      QRCode.toDataURL(ticketCode, { margin: 1, color: { dark: '#08060d', light: '#FFFFFF' } })
+        .then(qrDataUrl => {
+          const qrImg = new Image();
+          qrImg.crossOrigin = "anonymous";
+          qrImg.src = qrDataUrl;
+          qrImg.onload = () => {
+            ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+            
+            try {
+              const dataUrl = canvas.toDataURL('image/png');
+              const link = document.createElement('a');
+              link.download = `ticket-${ticketCode}.png`;
+              link.href = dataUrl;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              showToast('Ticket descargado con éxito', 'success');
+            } catch (err) {
+              console.error('Error generating data URL (probably CORS):', err);
+              showToast('Error de CORS en la imagen de fondo. Prueba abriendo la vista del ticket.', 'error');
+            }
+          };
+        })
+        .catch(err => {
+          console.error('Error generating QR code:', err);
+          showToast('Error al generar QR', 'error');
+        });
+    };
+
+    img.onerror = () => {
+      showToast('Error al cargar la imagen de fondo del ticket', 'error');
+    };
   };
 
   if (loading) {
@@ -1507,6 +1593,15 @@ export default function App({ onBack }: AppProps) {
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDownloadTicketDirectly(reg.events!, reg.ticket_code)}
+                        className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-[#FF8000] hover:text-white cursor-pointer transition-colors"
+                        title="Descargar Entrada"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                       </button>
                       <button
@@ -2329,7 +2424,28 @@ export default function App({ onBack }: AppProps) {
             </div>
             
             {/* Drawer Footer */}
-            <div className="p-6 border-t border-divider flex justify-end bg-inputBg shrink-0">
+            <div className="p-6 border-t border-divider flex justify-between items-center bg-inputBg shrink-0">
+              <button
+                onClick={() => {
+                  try {
+                    const canvas = canvasRef.current;
+                    if (!canvas) return;
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.download = `ticket-${showTicketDesigner.ticketCode}.png`;
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast('Ticket descargado con éxito', 'success');
+                  } catch (err) {
+                    showToast('Error de CORS: no se puede descargar de forma segura. Haz click derecho sobre la imagen para guardarla.', 'error');
+                  }
+                }}
+                className="bg-[#FF8000] text-canvas px-6 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] cursor-pointer"
+              >
+                Descargar Ticket
+              </button>
               <button
                 onClick={() => setShowTicketDesigner(null)}
                 className="bg-inputBg hover:bg-divider text-secondaryText hover:text-white px-6 py-2.5 rounded-none font-mono uppercase text-xs tracking-wider transition-colors cursor-pointer border border-divider"
