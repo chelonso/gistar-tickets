@@ -26,3 +26,4 @@ dist-ssr
 # TypeScript Build Info
 *.tsbuildinfo
 .tmp
+graphify-out/

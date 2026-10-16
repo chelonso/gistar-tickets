@@ -4,6 +4,11 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+# Build arguments from Dokploy
+ARG VITE_GATEWAY_URL
+ENV VITE_GATEWAY_URL=${VITE_GATEWAY_URL:-/api}
+
 RUN npm run build
 
 # Stage 2: Serve with Nginx

@@ -4,7 +4,10 @@ import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
 
 // API gateway base URL
-const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3000';
+const rawGateway = import.meta.env.VITE_GATEWAY_URL;
+const gatewayUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
+  ? '/api'
+  : (rawGateway || 'http://localhost:3000');
 
 interface Event {
   id: string;
