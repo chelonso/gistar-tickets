@@ -231,7 +231,7 @@ export default function App({ onBack }: AppProps) {
   }, []);
 
   useEffect(() => {
-    if (selectedEventId) {
+    if (selectedEventId && selectedEventId !== 'all') {
       loadEventItems(selectedEventId);
     } else {
       setEventItems([]);
@@ -363,12 +363,18 @@ export default function App({ onBack }: AppProps) {
 
   const loadEvents = async () => {
     try {
-      const res = await fetch(`${gatewayUrl}/rest/v1/events?order=date.asc`, { credentials: 'include' });
+      const res = await fetch(`${gatewayUrl}/rest/v1/events?order=created_at.desc`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setEvents(data);
-        if (data.length > 0 && !selectedEventId) {
-          setSelectedEventId(data[0].id);
+        // Ordenar explícitamente por el último registrado (created_at más reciente)
+        const sorted = [...data].sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+          return timeB - timeA;
+        });
+        setEvents(sorted);
+        if (sorted.length > 0 && !selectedEventId) {
+          setSelectedEventId(sorted[0].id);
         }
       }
     } catch (err: any) {
@@ -603,6 +609,7 @@ export default function App({ onBack }: AppProps) {
       });
 
       if (res.ok) {
+        const createdData = await res.json();
         showToast('Evento creado exitosamente', 'success');
         setShowEventModal(false);
         setEventForm({
@@ -620,6 +627,9 @@ export default function App({ onBack }: AppProps) {
         setJsonEditorText('');
         setJsonError(null);
         await loadEvents();
+        if (createdData && createdData[0]?.id) {
+          setSelectedEventId(createdData[0].id);
+        }
       } else {
         throw new Error(await res.text());
       }
@@ -630,7 +640,7 @@ export default function App({ onBack }: AppProps) {
 
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    const eventId = itemForm.event_id || selectedEventId;
+    const eventId = itemForm.event_id || (selectedEventId !== 'all' ? selectedEventId : (events[0]?.id || ''));
     if (!eventId || !itemForm.name || !itemForm.price) {
       showToast('Completa los campos obligatorios', 'error');
       return;
@@ -676,7 +686,7 @@ export default function App({ onBack }: AppProps) {
 
   const handleUpdateItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    const eventId = itemForm.event_id || selectedEventId;
+    const eventId = itemForm.event_id || (selectedEventId !== 'all' ? selectedEventId : (events[0]?.id || ''));
     if (!itemForm.id || !eventId || !itemForm.name || !itemForm.price) {
       showToast('Completa los campos obligatorios', 'error');
       return;
@@ -730,7 +740,7 @@ export default function App({ onBack }: AppProps) {
 
       if (res.ok) {
         showToast('Producto eliminado del catálogo', 'success');
-        if (selectedEventId) {
+        if (selectedEventId && selectedEventId !== 'all') {
           await loadEventItems(selectedEventId);
         }
       } else {
@@ -756,7 +766,7 @@ export default function App({ onBack }: AppProps) {
   const handleNewItem = () => {
     setItemForm({
       id: undefined,
-      event_id: selectedEventId,
+      event_id: selectedEventId !== 'all' ? selectedEventId : (events[0]?.id || ''),
       name: '',
       price: '',
       description: '',
@@ -765,9 +775,36 @@ export default function App({ onBack }: AppProps) {
     setShowItemModal(true);
   };
 
+  const handleOpenEmitModal = () => {
+    if (events.length === 0) {
+      showToast('Debes crear un evento primero', 'error');
+      return;
+    }
+
+    const defaultEventId = (selectedEventId && selectedEventId !== 'all')
+      ? selectedEventId
+      : (events[0]?.id || '');
+
+    setRegForm({
+      id: undefined,
+      event_id: defaultEventId,
+      buyer_name: '',
+      buyer_email: '',
+      selected_items: []
+    });
+
+    if (defaultEventId) {
+      loadEventItems(defaultEventId);
+    } else {
+      setEventItems([]);
+    }
+
+    setShowRegModal(true);
+  };
+
   const handleCreateRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    const eventId = regForm.event_id || selectedEventId;
+    const eventId = regForm.event_id || (selectedEventId !== 'all' ? selectedEventId : (events[0]?.id || ''));
     if (!eventId || !regForm.buyer_name) {
       showToast('Completa los campos obligatorios', 'error');
       return;
@@ -1282,6 +1319,11 @@ export default function App({ onBack }: AppProps) {
   }
 
   const filteredRegistrations = registrations.filter(reg => {
+    // 1. Filtrado general por evento seleccionado (si no es 'all' y hay eventos)
+    if (selectedEventId && selectedEventId !== 'all' && reg.event_id !== selectedEventId) {
+      return false;
+    }
+    // 2. Filtrado por término de búsqueda
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
     return (
@@ -1471,13 +1513,28 @@ export default function App({ onBack }: AppProps) {
                 <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-secondaryText mt-1">Visualiza tickets emitidos y canje de combos asociados</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 items-stretch shrink-0">
+                {/* Selector de Evento General */}
+                <div className="relative">
+                  <select
+                    value={selectedEventId}
+                    onChange={(e) => setSelectedEventId(e.target.value)}
+                    className="w-full sm:w-auto p-2.5 bg-surface text-primaryText thin-border font-mono text-xs focus-ring rounded-none cursor-pointer max-w-[240px] truncate"
+                    title="Filtrar por Evento"
+                  >
+                    <option value="all">⚡ Todos los Eventos</option>
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>{ev.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="relative">
                   <input 
                     type="text" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar por nombre, ticket..." 
-                    className="p-2.5 bg-surface text-primaryText thin-border font-mono text-xs focus-ring rounded-none min-w-[240px]"
+                    className="p-2.5 bg-surface text-primaryText thin-border font-mono text-xs focus-ring rounded-none min-w-[200px]"
                   />
                 </div>
                 <button
@@ -1495,13 +1552,7 @@ export default function App({ onBack }: AppProps) {
                   QR
                 </button>
                 <button
-                  onClick={() => {
-                    if (events.length === 0) {
-                      showToast('Debes crear un evento primero', 'error');
-                      return;
-                    }
-                    setShowRegModal(true);
-                  }}
+                  onClick={handleOpenEmitModal}
                   className="bg-[#FF8000] text-canvas px-4 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   Emitir Ticket
@@ -1512,10 +1563,12 @@ export default function App({ onBack }: AppProps) {
             {filteredRegistrations.length === 0 ? (
               <div className="bg-surface border border-divider p-12 text-center rounded-none">
                 <h3 className="text-sm font-semibold uppercase tracking-tight text-primaryText font-sans mb-1">
-                  {searchQuery ? 'No se encontraron resultados' : 'No hay acreditados'}
+                  {searchQuery || (selectedEventId && selectedEventId !== 'all') ? 'No se encontraron resultados' : 'No hay acreditados'}
                 </h3>
                 <p className="text-[10px] text-secondaryText font-mono uppercase max-w-sm mx-auto">
-                  {searchQuery ? 'Prueba con otro término de búsqueda.' : 'Registra participantes manualmente o simula una venta.'}
+                  {searchQuery || (selectedEventId && selectedEventId !== 'all')
+                    ? 'Prueba seleccionando otro evento o cambiando el término de búsqueda.'
+                    : 'Registra participantes manualmente o simula una venta.'}
                 </p>
               </div>
             ) : (
@@ -1646,7 +1699,7 @@ export default function App({ onBack }: AppProps) {
               </div>
               <div className="flex gap-3">
                 <select
-                  value={selectedEventId}
+                  value={selectedEventId !== 'all' ? selectedEventId : (events[0]?.id || '')}
                   onChange={(e) => setSelectedEventId(e.target.value)}
                   className="bg-inputBg border border-divider px-4 py-2.5 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer"
                 >
@@ -1656,9 +1709,13 @@ export default function App({ onBack }: AppProps) {
                 </select>
                 <button
                   onClick={() => {
-                    if (!selectedEventId) {
+                    const activeEv = selectedEventId !== 'all' ? selectedEventId : events[0]?.id;
+                    if (!activeEv) {
                       showToast('Debes seleccionar o crear un evento', 'error');
                       return;
+                    }
+                    if (selectedEventId === 'all') {
+                      setSelectedEventId(activeEv);
                     }
                     handleNewItem();
                   }}
@@ -2299,13 +2356,19 @@ export default function App({ onBack }: AppProps) {
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Seleccionar Evento *</label>
                   <select
                     disabled={!!regForm.id}
-                    value={regForm.event_id || selectedEventId}
+                    value={regForm.event_id || (selectedEventId !== 'all' ? selectedEventId : '')}
                     onChange={(e) => {
-                      setRegForm({ ...regForm, event_id: e.target.value });
-                      loadEventItems(e.target.value);
+                      const newId = e.target.value;
+                      setRegForm({ ...regForm, event_id: newId, selected_items: [] });
+                      if (newId) {
+                        loadEventItems(newId);
+                      } else {
+                        setEventItems([]);
+                      }
                     }}
                     className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
+                    <option value="">-- Seleccionar Evento --</option>
                     {events.map(ev => (
                       <option key={ev.id} value={ev.id}>{ev.name}</option>
                     ))}
