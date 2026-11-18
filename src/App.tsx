@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './index.css';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -1487,6 +1487,31 @@ export default function App({ onBack }: AppProps) {
     );
   });
 
+  // Estadísticas del evento seleccionado (o globales si es 'all')
+  const statsEventRegistrations = useMemo(() => {
+    if (selectedEventId && selectedEventId !== 'all') {
+      return registrations.filter(reg => reg.event_id === selectedEventId);
+    }
+    return registrations;
+  }, [registrations, selectedEventId]);
+
+  const stats = useMemo(() => {
+    const total = statsEventRegistrations.length;
+    const checkedIn = statsEventRegistrations.filter(r => r.status === 'checked_in').length;
+    const pending = statsEventRegistrations.filter(r => r.status === 'pending').length;
+    const canceled = statsEventRegistrations.filter(r => r.status === 'canceled').length;
+
+    const checkedInPct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
+    const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
+    const canceledPct = total > 0 ? Math.round((canceled / total) * 100) : 0;
+
+    return { total, checkedIn, pending, canceled, checkedInPct, pendingPct, canceledPct };
+  }, [statsEventRegistrations]);
+
+  const activeSelectedEvent = useMemo(() => {
+    return events.find(e => e.id === selectedEventId);
+  }, [events, selectedEventId]);
+
   return (
     <div className="flex-grow flex overflow-hidden bg-canvas text-primaryText antialiased">
       {/* Toast Alert (Always on top of all drawers and backdrops) */}
@@ -1724,6 +1749,78 @@ export default function App({ onBack }: AppProps) {
                 >
                   Emitir Ticket
                 </button>
+              </div>
+            </div>
+
+            {/* KPI Stats Cards - Exclusivas del evento seleccionado en el filtro */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Box 1: Total Emitidos */}
+              <div className="bg-surface border border-divider p-4 relative rounded-none flex flex-col justify-between group hover:border-[#FF8000]/40 transition-colors">
+                <div className="flex items-center justify-between text-mutedText mb-2">
+                  <span className="text-[9px] font-mono uppercase tracking-wider font-semibold">Total Emitidos</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-accentBlue"></span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-mono font-bold text-primaryText tracking-tight">{stats.total}</span>
+                  <span className="text-[10px] font-mono text-mutedText uppercase">tickets</span>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-divider/40 flex items-center justify-between text-[9px] font-mono text-mutedText">
+                  <span className="truncate max-w-[130px] font-medium text-secondaryText">
+                    {activeSelectedEvent ? activeSelectedEvent.name : (selectedEventId === 'all' ? 'Todos los eventos' : 'Evento actual')}
+                  </span>
+                  <span className="text-accentBlue font-bold">100%</span>
+                </div>
+              </div>
+
+              {/* Box 2: Ingresados / En Sala */}
+              <div className="bg-surface border border-divider p-4 relative rounded-none flex flex-col justify-between group hover:border-emerald-500/40 transition-colors">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-emerald-500" />
+                <div className="flex items-center justify-between text-mutedText mb-2">
+                  <span className="text-[9px] font-mono uppercase tracking-wider font-semibold text-emerald-400">Ingresados / En Sala</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-mono font-bold text-emerald-400 tracking-tight">{stats.checkedIn}</span>
+                  <span className="text-[10px] font-mono text-emerald-400/80 font-bold">({stats.checkedInPct}%)</span>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-divider/40 flex items-center justify-between text-[9px] font-mono text-mutedText">
+                  <span>En Sala / Validados</span>
+                  <span className="text-emerald-400 font-bold">{stats.checkedIn}/{stats.total}</span>
+                </div>
+              </div>
+
+              {/* Box 3: Pendientes de Ingreso */}
+              <div className="bg-surface border border-divider p-4 relative rounded-none flex flex-col justify-between group hover:border-[#FF8000]/40 transition-colors">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#FF8000]" />
+                <div className="flex items-center justify-between text-mutedText mb-2">
+                  <span className="text-[9px] font-mono uppercase tracking-wider font-semibold text-[#FF8000]">Pendientes</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF8000]"></span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-mono font-bold text-[#FF8000] tracking-tight">{stats.pending}</span>
+                  <span className="text-[10px] font-mono text-[#FF8000]/80 font-bold">({stats.pendingPct}%)</span>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-divider/40 flex items-center justify-between text-[9px] font-mono text-mutedText">
+                  <span>Por validar en puerta</span>
+                  <span className="text-[#FF8000] font-bold">{stats.pending}</span>
+                </div>
+              </div>
+
+              {/* Box 4: Cancelados / Bajas */}
+              <div className="bg-surface border border-divider p-4 relative rounded-none flex flex-col justify-between group hover:border-rose-500/40 transition-colors">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-rose-500/70" />
+                <div className="flex items-center justify-between text-mutedText mb-2">
+                  <span className="text-[9px] font-mono uppercase tracking-wider font-semibold text-rose-400">Cancelados</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-mono font-bold text-rose-400 tracking-tight">{stats.canceled}</span>
+                  <span className="text-[10px] font-mono text-rose-400/80 font-bold">({stats.canceledPct}%)</span>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-divider/40 flex items-center justify-between text-[9px] font-mono text-mutedText">
+                  <span>Tickets anulados</span>
+                  <span className="text-rose-400 font-bold">{stats.canceled}</span>
+                </div>
               </div>
             </div>
 
