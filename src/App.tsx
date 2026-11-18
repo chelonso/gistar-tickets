@@ -257,8 +257,20 @@ export default function App({ onBack }: AppProps) {
   }, [showEventModal, eventForm.base_image_url, eventForm.name, eventForm.qr_config]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    let cleanMsg = message;
+    if (typeof message === 'string' && message.includes('{"')) {
+      try {
+        const jsonStart = message.indexOf('{');
+        const parsed = JSON.parse(message.substring(jsonStart));
+        if (parsed.message) {
+          cleanMsg = `${message.substring(0, jsonStart)} ${parsed.message}`.trim();
+        }
+      } catch {
+        // keep original
+      }
+    }
+    setToast({ message: cleanMsg, type });
+    setTimeout(() => setToast(null), 5000);
   };
 
   useEffect(() => {
@@ -870,7 +882,7 @@ export default function App({ onBack }: AppProps) {
             event_id: eventId,
             ticket_code: uniqueCode,
             buyer_name: finalBuyerName,
-            buyer_email: regForm.buyer_email || null,
+            buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
             status: 'pending',
             tenant_id: tenantId
           }),
@@ -936,7 +948,7 @@ export default function App({ onBack }: AppProps) {
         },
         body: JSON.stringify({
           buyer_name: regForm.buyer_name,
-          buyer_email: regForm.buyer_email || null,
+          buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
           updated_at: new Date().toISOString()
         }),
         credentials: 'include'
@@ -1477,12 +1489,26 @@ export default function App({ onBack }: AppProps) {
 
   return (
     <div className="flex-grow flex overflow-hidden bg-canvas text-primaryText antialiased">
-      {/* Toast Alert */}
+      {/* Toast Alert (Always on top of all drawers and backdrops) */}
       {toast && (
-        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-none border font-mono text-[10px] uppercase tracking-wider flex items-center gap-2 shadow-2xl animate-slide-in bg-surface ${
-          toast.type === 'success' ? 'border-emerald-500/40 text-emerald-400' : toast.type === 'error' ? 'border-rose-500/40 text-rose-400' : 'border-[#FF8000]/40 text-[#FF8000]'
-        }`}>
-          <span>{toast.message}</span>
+        <div 
+          onClick={() => setToast(null)}
+          className={`fixed top-6 right-6 z-[99999] max-w-lg px-4 py-3 rounded-none border font-mono text-[10px] uppercase tracking-wider flex items-center justify-between gap-3 shadow-2xl animate-slide-in cursor-pointer bg-surface/95 backdrop-blur-md ${
+            toast.type === 'success' ? 'border-emerald-500/50 text-emerald-400' : toast.type === 'error' ? 'border-rose-500/50 text-rose-400' : 'border-[#FF8000]/50 text-[#FF8000]'
+          }`}
+          title="Click para cerrar notificación"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs">{toast.type === 'error' ? '⚠' : toast.type === 'success' ? '✓' : 'ℹ'}</span>
+            <span className="break-words">{toast.message}</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={(e) => { e.stopPropagation(); setToast(null); }}
+            className="text-secondaryText hover:text-white font-mono text-xs ml-2 cursor-pointer p-0.5"
+          >
+            ✕
+          </button>
         </div>
       )}
 
