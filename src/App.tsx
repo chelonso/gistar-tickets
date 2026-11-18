@@ -72,7 +72,7 @@ export default function App({ onBack }: AppProps) {
   const [showEventModal, setShowEventModal] = useState<boolean>(false);
   const [showItemModal, setShowItemModal] = useState<boolean>(false);
   const [showRegModal, setShowRegModal] = useState<boolean>(false);
-  const [showTicketDesigner, setShowTicketDesigner] = useState<{ event: Event, ticketCode: string } | null>(null);
+  const [showTicketDesigner, setShowTicketDesigner] = useState<{ event: Event, ticketCode: string, buyerName?: string } | null>(null);
   const [showScannerDrawer, setShowScannerDrawer] = useState<boolean>(false);
 
   // Search state
@@ -127,7 +127,9 @@ export default function App({ onBack }: AppProps) {
     qr_config: {
       qr: { x: 450, y: 40, size: 100 },
       code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
-      name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+      event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
+      attendee: { x: 30, y: 85, size: 16, color: '#FFFFFF' },
+      number: { x: 30, y: 125, size: 16, color: '#FF8000' }
     }
   });
 
@@ -152,11 +154,13 @@ export default function App({ onBack }: AppProps) {
     buyer_name: string;
     buyer_email: string;
     selected_items: string[];
+    quantity?: number;
   }>({
     event_id: '',
     buyer_name: '',
     buyer_email: '',
-    selected_items: []
+    selected_items: [],
+    quantity: 1
   });
 
   // Canvas ref for composition preview
@@ -185,17 +189,48 @@ export default function App({ onBack }: AppProps) {
       
       ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
 
+      const qrConfig = eventForm.qr_config?.qr || {};
+      const codeConfig = eventForm.qr_config?.code || {};
+      const eventConfig = eventForm.qr_config?.event || eventForm.qr_config?.name || {};
+      const attendeeConfig = eventForm.qr_config?.attendee || eventForm.qr_config?.buyer;
+      const numberConfig = eventForm.qr_config?.number || eventForm.qr_config?.ticket_number;
+
       // Draw Ticket Code with proportional font size and positioning
-      const fontSize = Math.max(14, Math.round(imgHeight * 0.08));
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = `bold ${fontSize}px Courier New`;
-      ctx.fillText('COD: PREVIEW-000000', imgWidth * 0.05, imgHeight * 0.88);
-      ctx.fillText((eventForm.name || 'EVENTO DE PRUEBA').toUpperCase(), imgWidth * 0.05, imgHeight * 0.22);
+      if (codeConfig.visible !== false) {
+        const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        ctx.fillStyle = codeConfig.color || '#FFFFFF';
+        ctx.font = `bold ${codeSize}px Courier New`;
+        ctx.fillText('COD: PREVIEW-000000', Number(codeConfig.x) ?? (imgWidth * 0.05), Number(codeConfig.y) ?? (imgHeight * 0.88));
+      }
+
+      // Draw Event Name
+      if (eventConfig.visible !== false) {
+        const eventSize = Number(eventConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        ctx.fillStyle = eventConfig.color || '#FFFFFF';
+        ctx.font = `bold ${eventSize}px Courier New`;
+        ctx.fillText((eventForm.name || 'EVENTO DE PRUEBA').toUpperCase(), Number(eventConfig.x) ?? (imgWidth * 0.05), Number(eventConfig.y) ?? (imgHeight * 0.22));
+      }
+
+      // Draw Attendee (if configured or preview)
+      if (attendeeConfig && attendeeConfig.visible !== false) {
+        const attSize = Number(attendeeConfig.size) || Math.max(14, Math.round(imgHeight * 0.07));
+        ctx.fillStyle = attendeeConfig.color || '#FFFFFF';
+        ctx.font = `bold ${attSize}px Courier New`;
+        ctx.fillText('PARTICIPANTE EJEMPLO', Number(attendeeConfig.x) ?? (imgWidth * 0.05), Number(attendeeConfig.y) ?? (imgHeight * 0.45));
+      }
+
+      // Draw Number (if configured)
+      if (numberConfig && numberConfig.visible !== false) {
+        const numSize = Number(numberConfig.size) || Math.max(14, Math.round(imgHeight * 0.07));
+        ctx.fillStyle = numberConfig.color || '#FF8000';
+        ctx.font = `bold ${numSize}px Courier New`;
+        ctx.fillText('#1', Number(numberConfig.x) ?? (imgWidth * 0.05), Number(numberConfig.y) ?? (imgHeight * 0.65));
+      }
 
       // Compose QR code using qrcode package for live preview
-      const qrSize = Number(eventForm.qr_config.size) || 100;
-      const qrX = Number(eventForm.qr_config.x ?? (imgWidth - qrSize - 30));
-      const qrY = Number(eventForm.qr_config.y ?? (imgHeight - qrSize - 30));
+      const qrSize = Number(qrConfig.size || eventForm.qr_config?.size) || 100;
+      const qrX = Number(qrConfig.x ?? eventForm.qr_config?.x ?? (imgWidth - qrSize - 30));
+      const qrY = Number(qrConfig.y ?? eventForm.qr_config?.y ?? (imgHeight - qrSize - 30));
 
       QRCode.toDataURL('PREVIEW-000000', { margin: 1, color: { dark: '#08060d', light: '#FFFFFF' } })
         .then(qrDataUrl => {
@@ -219,7 +254,7 @@ export default function App({ onBack }: AppProps) {
       ctx.font = '10px Courier New';
       ctx.fillText('FALLO AL CARGAR IMAGEN PARA PREVISUALIZACION LIVE', 30, 50);
     };
-  }, [showEventModal, eventForm.base_image_url, eventForm.name, eventForm.qr_config.x, eventForm.qr_config.y, eventForm.qr_config.size]);
+  }, [showEventModal, eventForm.base_image_url, eventForm.name, eventForm.qr_config]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
@@ -462,7 +497,7 @@ export default function App({ onBack }: AppProps) {
       qr_config: eventForm.qr_config,
       created_at: new Date().toISOString()
     };
-    handleDrawTicket(simulatedEvent, 'PREVIEW-000000');
+    handleDrawTicket(simulatedEvent, 'PREVIEW-000000', 'PARTICIPANTE EJEMPLO #1');
   };
 
   const handleJsonChange = (val: string) => {
@@ -485,7 +520,9 @@ export default function App({ onBack }: AppProps) {
       const initialJson = {
         qr: { x: 450, y: 40, size: 100 },
         code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
-        name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+        event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
+        attendee: { x: 30, y: 85, size: 16, color: '#FFFFFF' },
+        number: { x: 30, y: 125, size: 16, color: '#FF8000' }
       };
       setEventForm(prev => ({
         ...prev,
@@ -526,7 +563,9 @@ export default function App({ onBack }: AppProps) {
       qr_config: {
         qr: { x: 450, y: 40, size: 100 },
         code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
-        name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
+        event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
+        attendee: { x: 30, y: 85, size: 16, color: '#FFFFFF' },
+        number: { x: 30, y: 125, size: 16, color: '#FF8000' }
       }
     });
     setJsonEditorText('');
@@ -790,7 +829,8 @@ export default function App({ onBack }: AppProps) {
       event_id: defaultEventId,
       buyer_name: '',
       buyer_email: '',
-      selected_items: []
+      selected_items: [],
+      quantity: 1
     });
 
     if (defaultEventId) {
@@ -810,66 +850,73 @@ export default function App({ onBack }: AppProps) {
       return;
     }
 
+    const qty = Math.max(1, Math.min(50, regForm.quantity || 1));
+    const baseName = regForm.buyer_name.replace(/\s*#\d+$/, '').trim();
+
     try {
-      // Generate a clean ticket code: EVT-RANDOM
-      const uniqueCode = `EVT-${Math.floor(100000 + Math.random() * 900000)}`;
+      for (let i = 0; i < qty; i++) {
+        // Generate a clean ticket code: EVT-RANDOM
+        const uniqueCode = `EVT-${Math.floor(100000 + Math.random() * 900000)}`;
+        const finalBuyerName = `${baseName} #${i + 1}`;
 
-      // 1. Create registration
-      const regRes = await fetch(`${gatewayUrl}/rest/v1/registrations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          event_id: eventId,
-          ticket_code: uniqueCode,
-          buyer_name: regForm.buyer_name,
-          buyer_email: regForm.buyer_email,
-          status: 'pending',
-          tenant_id: tenantId
-        }),
-        credentials: 'include'
-      });
-
-      if (!regRes.ok) {
-        throw new Error(await regRes.text());
-      }
-
-      const createdReg = await regRes.json();
-      const registrationId = createdReg[0].id;
-
-      // 2. Associate selected items
-      if (regForm.selected_items.length > 0) {
-        const itemInserts = regForm.selected_items.map(itemId => ({
-          registration_id: registrationId,
-          event_item_id: itemId,
-          status: 'pending',
-          tenant_id: tenantId
-        }));
-
-        await fetch(`${gatewayUrl}/rest/v1/registration_items`, {
+        // 1. Create registration
+        const regRes = await fetch(`${gatewayUrl}/rest/v1/registrations`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
           },
-          body: JSON.stringify(itemInserts),
+          body: JSON.stringify({
+            event_id: eventId,
+            ticket_code: uniqueCode,
+            buyer_name: finalBuyerName,
+            buyer_email: regForm.buyer_email || null,
+            status: 'pending',
+            tenant_id: tenantId
+          }),
           credentials: 'include'
         });
+
+        if (!regRes.ok) {
+          throw new Error(await regRes.text());
+        }
+
+        const createdReg = await regRes.json();
+        const registrationId = createdReg[0].id;
+
+        // 2. Associate selected items
+        if (regForm.selected_items.length > 0) {
+          const itemInserts = regForm.selected_items.map(itemId => ({
+            registration_id: registrationId,
+            event_item_id: itemId,
+            status: 'pending',
+            tenant_id: tenantId
+          }));
+
+          await fetch(`${gatewayUrl}/rest/v1/registration_items`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(itemInserts),
+            credentials: 'include'
+          });
+        }
       }
 
-      showToast('Ticket registrado con éxito', 'success');
+      showToast(qty > 1 ? `${qty} tickets registrados con éxito` : 'Ticket registrado con éxito', 'success');
       setShowRegModal(false);
       setRegForm({
         id: undefined,
         event_id: '',
         buyer_name: '',
         buyer_email: '',
-        selected_items: []
+        selected_items: [],
+        quantity: 1
       });
       await loadRegistrations();
     } catch (err: any) {
-      showToast('Error registrando ticket: ' + err.message, 'error');
+      showToast('Error registrando tickets: ' + err.message, 'error');
     }
   };
 
@@ -992,7 +1039,8 @@ export default function App({ onBack }: AppProps) {
           event_id: reg.event_id,
           buyer_name: reg.buyer_name,
           buyer_email: reg.buyer_email || '',
-          selected_items: selectedItemIds
+          selected_items: selectedItemIds,
+          quantity: 1
         });
         
         await loadEventItems(reg.event_id);
@@ -1154,9 +1202,23 @@ export default function App({ onBack }: AppProps) {
     }
   };
 
+  const parseBuyerName = (raw: string = '') => {
+    if (!raw) return { name: '', number: '' };
+    const trimmed = raw.trim();
+    const hashMatch = trimmed.match(/^(.*?)(?:\s*(#\d+))$/);
+    if (hashMatch) {
+      return { name: hashMatch[1].trim(), number: hashMatch[2] };
+    }
+    const numMatch = trimmed.match(/^(.*?)(?:\s+(\d+))$/);
+    if (numMatch) {
+      return { name: numMatch[1].trim(), number: `#${numMatch[2]}` };
+    }
+    return { name: trimmed, number: '#1' };
+  };
+
   // Composes ticket base image + QR code into Canvas preview
-  const handleDrawTicket = (event: Event, ticketCode: string) => {
-    setShowTicketDesigner({ event, ticketCode });
+  const handleDrawTicket = (event: Event, ticketCode: string, buyerName: string = '') => {
+    setShowTicketDesigner({ event, ticketCode, buyerName });
     setTimeout(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -1180,29 +1242,68 @@ export default function App({ onBack }: AppProps) {
         // Parse JSON config sections with safe fallbacks (backwards compatible)
         const qrConfig = event.qr_config?.qr || {};
         const codeConfig = event.qr_config?.code || {};
-        const nameConfig = event.qr_config?.name || {};
+        const eventConfig = event.qr_config?.event || event.qr_config?.name || {};
+        const attendeeConfig = event.qr_config?.attendee || event.qr_config?.buyer || event.qr_config?.buyer_name;
+        const numberConfig = event.qr_config?.number || event.qr_config?.ticket_number || event.qr_config?.numero;
 
-        // Draw Ticket Code Text
-        const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
-        const codeColor = codeConfig.color || '#FFFFFF';
-        const codeX = Number(codeConfig.x) ?? (imgWidth * 0.05);
-        const codeY = Number(codeConfig.y) ?? (imgHeight * 0.88);
+        const parsed = parseBuyerName(buyerName);
 
-        ctx.fillStyle = codeColor;
-        ctx.font = `bold ${codeSize}px Courier New`;
-        ctx.fillText(`COD: ${ticketCode}`, codeX, codeY);
+        // 1. Draw Ticket Code Text
+        if (codeConfig.visible !== false) {
+          const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+          const codeColor = codeConfig.color || '#FFFFFF';
+          const codeX = Number(codeConfig.x) ?? (imgWidth * 0.05);
+          const codeY = Number(codeConfig.y) ?? (imgHeight * 0.88);
 
-        // Draw Event Name Text
-        const nameSize = Number(nameConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
-        const nameColor = nameConfig.color || '#FFFFFF';
-        const nameX = Number(nameConfig.x) ?? (imgWidth * 0.05);
-        const nameY = Number(nameConfig.y) ?? (imgHeight * 0.22);
+          ctx.fillStyle = codeColor;
+          ctx.font = `bold ${codeSize}px Courier New`;
+          ctx.fillText(`COD: ${ticketCode}`, codeX, codeY);
+        }
 
-        ctx.fillStyle = nameColor;
-        ctx.font = `bold ${nameSize}px Courier New`;
-        ctx.fillText(event.name.toUpperCase(), nameX, nameY);
+        // 2. Draw Event Name Text
+        if (eventConfig.visible !== false) {
+          const eventSize = Number(eventConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+          const eventColor = eventConfig.color || '#FFFFFF';
+          const eventX = Number(eventConfig.x) ?? (imgWidth * 0.05);
+          const eventY = Number(eventConfig.y) ?? (imgHeight * 0.22);
 
-        // Generate real scannable QR code using qrcode package
+          ctx.fillStyle = eventColor;
+          ctx.font = `bold ${eventSize}px Courier New`;
+          ctx.fillText(event.name.toUpperCase(), eventX, eventY);
+        }
+
+        // 3. Draw Attendee Name Text
+        if (attendeeConfig && attendeeConfig.visible !== false) {
+          const attSize = Number(attendeeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+          const attColor = attendeeConfig.color || '#FFFFFF';
+          const attX = Number(attendeeConfig.x) ?? (imgWidth * 0.05);
+          const attY = Number(attendeeConfig.y) ?? (imgHeight * 0.45);
+
+          ctx.fillStyle = attColor;
+          ctx.font = `bold ${attSize}px Courier New`;
+          const textToDraw = numberConfig ? (parsed.name || 'PARTICIPANTE') : (buyerName || 'PARTICIPANTE');
+          ctx.fillText(textToDraw.toUpperCase(), attX, attY);
+        } else if (!attendeeConfig && buyerName) {
+          const attSize = Math.max(13, Math.round(imgHeight * 0.07));
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `bold ${attSize}px Courier New`;
+          ctx.fillText(buyerName.toUpperCase(), imgWidth * 0.05, imgHeight * 0.45);
+        }
+
+        // 4. Draw Ticket Number Text (#1, #2, etc.)
+        if (numberConfig && numberConfig.visible !== false) {
+          const numSize = Number(numberConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+          const numColor = numberConfig.color || '#FF8000';
+          const numX = Number(numberConfig.x) ?? (imgWidth * 0.05);
+          const numY = Number(numberConfig.y) ?? (imgHeight * 0.65);
+
+          ctx.fillStyle = numColor;
+          ctx.font = `bold ${numSize}px Courier New`;
+          const numToDraw = parsed.number || '#1';
+          ctx.fillText(numToDraw, numX, numY);
+        }
+
+        // 5. Generate real scannable QR code using qrcode package
         const qrSize = Number(qrConfig.size || event.qr_config?.size) || 100;
         const qrX = Number(qrConfig.x ?? event.qr_config?.x ?? (imgWidth - qrSize - 30));
         const qrY = Number(qrConfig.y ?? event.qr_config?.y ?? (imgHeight - qrSize - 30));
@@ -1223,7 +1324,7 @@ export default function App({ onBack }: AppProps) {
     }, 100);
   };
 
-  const handleDownloadTicketDirectly = (event: Event, ticketCode: string) => {
+  const handleDownloadTicketDirectly = (event: Event, ticketCode: string, buyerName: string = '') => {
     showToast('Generando ticket para descarga...', 'info');
 
     const canvas = document.createElement('canvas');
@@ -1248,27 +1349,66 @@ export default function App({ onBack }: AppProps) {
 
       const qrConfig = event.qr_config?.qr || {};
       const codeConfig = event.qr_config?.code || {};
-      const nameConfig = event.qr_config?.name || {};
+      const eventConfig = event.qr_config?.event || event.qr_config?.name || {};
+      const attendeeConfig = event.qr_config?.attendee || event.qr_config?.buyer || event.qr_config?.buyer_name;
+      const numberConfig = event.qr_config?.number || event.qr_config?.ticket_number || event.qr_config?.numero;
+
+      const parsed = parseBuyerName(buyerName);
 
       // Draw Code
-      const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
-      const codeColor = codeConfig.color || '#FFFFFF';
-      const codeX = Number(codeConfig.x) ?? (imgWidth * 0.05);
-      const codeY = Number(codeConfig.y) ?? (imgHeight * 0.88);
+      if (codeConfig.visible !== false) {
+        const codeSize = Number(codeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        const codeColor = codeConfig.color || '#FFFFFF';
+        const codeX = Number(codeConfig.x) ?? (imgWidth * 0.05);
+        const codeY = Number(codeConfig.y) ?? (imgHeight * 0.88);
 
-      ctx.fillStyle = codeColor;
-      ctx.font = `bold ${codeSize}px Courier New`;
-      ctx.fillText(`COD: ${ticketCode}`, codeX, codeY);
+        ctx.fillStyle = codeColor;
+        ctx.font = `bold ${codeSize}px Courier New`;
+        ctx.fillText(`COD: ${ticketCode}`, codeX, codeY);
+      }
 
-      // Draw Name
-      const nameSize = Number(nameConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
-      const nameColor = nameConfig.color || '#FFFFFF';
-      const nameX = Number(nameConfig.x) ?? (imgWidth * 0.05);
-      const nameY = Number(nameConfig.y) ?? (imgHeight * 0.22);
+      // Draw Event
+      if (eventConfig.visible !== false) {
+        const eventSize = Number(eventConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        const eventColor = eventConfig.color || '#FFFFFF';
+        const eventX = Number(eventConfig.x) ?? (imgWidth * 0.05);
+        const eventY = Number(eventConfig.y) ?? (imgHeight * 0.22);
 
-      ctx.fillStyle = nameColor;
-      ctx.font = `bold ${nameSize}px Courier New`;
-      ctx.fillText(event.name.toUpperCase(), nameX, nameY);
+        ctx.fillStyle = eventColor;
+        ctx.font = `bold ${eventSize}px Courier New`;
+        ctx.fillText(event.name.toUpperCase(), eventX, eventY);
+      }
+
+      // Draw Attendee
+      if (attendeeConfig && attendeeConfig.visible !== false) {
+        const attSize = Number(attendeeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        const attColor = attendeeConfig.color || '#FFFFFF';
+        const attX = Number(attendeeConfig.x) ?? (imgWidth * 0.05);
+        const attY = Number(attendeeConfig.y) ?? (imgHeight * 0.45);
+
+        ctx.fillStyle = attColor;
+        ctx.font = `bold ${attSize}px Courier New`;
+        const textToDraw = numberConfig ? (parsed.name || 'PARTICIPANTE') : (buyerName || 'PARTICIPANTE');
+        ctx.fillText(textToDraw.toUpperCase(), attX, attY);
+      } else if (!attendeeConfig && buyerName) {
+        const attSize = Math.max(13, Math.round(imgHeight * 0.07));
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${attSize}px Courier New`;
+        ctx.fillText(buyerName.toUpperCase(), imgWidth * 0.05, imgHeight * 0.45);
+      }
+
+      // Draw Number
+      if (numberConfig && numberConfig.visible !== false) {
+        const numSize = Number(numberConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
+        const numColor = numberConfig.color || '#FF8000';
+        const numX = Number(numberConfig.x) ?? (imgWidth * 0.05);
+        const numY = Number(numberConfig.y) ?? (imgHeight * 0.65);
+
+        ctx.fillStyle = numColor;
+        ctx.font = `bold ${numSize}px Courier New`;
+        const numToDraw = parsed.number || '#1';
+        ctx.fillText(numToDraw, numX, numY);
+      }
 
       // Draw QR
       const qrSize = Number(qrConfig.size || event.qr_config?.size) || 100;
@@ -1286,7 +1426,8 @@ export default function App({ onBack }: AppProps) {
             try {
               const dataUrl = canvas.toDataURL('image/png');
               const link = document.createElement('a');
-              link.download = `ticket-${ticketCode}.png`;
+              const cleanBuyer = buyerName ? `-${buyerName.replace(/\s+/g, '_')}` : '';
+              link.download = `ticket-${ticketCode}${cleanBuyer}.png`;
               link.href = dataUrl;
               document.body.appendChild(link);
               link.click();
@@ -1467,7 +1608,7 @@ export default function App({ onBack }: AppProps) {
                       </div>
                       <div className="mt-4 pt-4 border-t border-divider flex gap-2">
                         <button
-                          onClick={() => handleDrawTicket(event, 'TEST-123456')}
+                          onClick={() => handleDrawTicket(event, 'TEST-123456', 'PARTICIPANTE EJEMPLO #1')}
                           className="flex-1 text-center bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white py-2 px-4 rounded-none font-mono uppercase text-[10px] tracking-wider transition-colors cursor-pointer"
                         >
                           Ver Entrada
@@ -1642,7 +1783,7 @@ export default function App({ onBack }: AppProps) {
                     {/* Col 5: Actions */}
                     <div className="flex w-full justify-start md:justify-end border-t md:border-t-0 border-divider pt-3 md:pt-0 gap-2">
                       <button
-                        onClick={() => handleDrawTicket(reg.events!, reg.ticket_code)}
+                        onClick={() => handleDrawTicket(reg.events!, reg.ticket_code, reg.buyer_name)}
                         className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white cursor-pointer transition-colors"
                         title="Visualizar Entrada"
                       >
@@ -1652,7 +1793,7 @@ export default function App({ onBack }: AppProps) {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDownloadTicketDirectly(reg.events!, reg.ticket_code)}
+                        onClick={() => handleDownloadTicketDirectly(reg.events!, reg.ticket_code, reg.buyer_name)}
                         className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-[#FF8000] hover:text-white cursor-pointer transition-colors"
                         title="Descargar Entrada"
                       >
@@ -2214,15 +2355,26 @@ export default function App({ onBack }: AppProps) {
                     </h3>
                     
                     <div className="space-y-3 text-left">
-                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
-                        JSON del QR y Textos
-                      </label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
+                          JSON del QR y Textos
+                        </label>
+                        <span className="text-[8px] font-mono text-[#FF8000] uppercase tracking-wider">
+                          qr • code • event • attendee • number
+                        </span>
+                      </div>
                       <textarea
                         value={jsonEditorText}
                         onChange={(e) => handleJsonChange(e.target.value)}
                         className="tickets-json-editor"
                         rows={18}
-                        placeholder="{}"
+                        placeholder={`{
+  "qr": { "x": 450, "y": 40, "size": 100 },
+  "code": { "x": 30, "y": 175, "size": 16, "color": "#FFFFFF" },
+  "event": { "x": 30, "y": 45, "size": 16, "color": "#FFFFFF" },
+  "attendee": { "x": 30, "y": 85, "size": 16, "color": "#FFFFFF" },
+  "number": { "x": 30, "y": 125, "size": 16, "color": "#FF8000" }
+}`}
                       />
                       {jsonError ? (
                         <span className="text-[9px] font-mono font-bold text-red-500 uppercase tracking-wider block mt-1">
@@ -2385,6 +2537,54 @@ export default function App({ onBack }: AppProps) {
                     placeholder="Nombre completo"
                   />
                 </div>
+
+                {!regForm.id && (
+                  <div className="space-y-1.5 p-3 bg-inputBg/60 border border-divider rounded-none">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
+                        Cantidad de Entradas
+                      </label>
+                      <span className="text-[9px] font-mono text-[#FF8000] font-bold">
+                        {(regForm.quantity || 1) > 1 ? `${regForm.quantity} tickets (#1 a #${regForm.quantity})` : '1 ticket (#1)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRegForm({ ...regForm, quantity: Math.max(1, (regForm.quantity || 1) - 1) })}
+                        className="w-10 h-8.5 bg-surface border border-divider text-secondaryText hover:text-white flex items-center justify-center font-mono font-bold text-sm cursor-pointer transition-colors"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={regForm.quantity || 1}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 1;
+                          setRegForm({ ...regForm, quantity: Math.max(1, Math.min(50, val)) });
+                        }}
+                        className="flex-1 text-center bg-surface border border-divider px-3 py-1.5 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRegForm({ ...regForm, quantity: Math.min(50, (regForm.quantity || 1) + 1) })}
+                        className="w-10 h-8.5 bg-surface border border-divider text-secondaryText hover:text-white flex items-center justify-center font-mono font-bold text-sm cursor-pointer transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                    {regForm.buyer_name.trim() && (
+                      <p className="text-[9px] font-mono text-secondaryText uppercase tracking-tight mt-1">
+                        {(regForm.quantity || 1) > 1
+                          ? `Se generarán: ${regForm.buyer_name.replace(/\s*#\d+$/, '').trim()} #1, ${regForm.buyer_name.replace(/\s*#\d+$/, '').trim()} #2, ${regForm.buyer_name.replace(/\s*#\d+$/, '').trim()} #3...`
+                          : `Se registrará como: ${regForm.buyer_name.replace(/\s*#\d+$/, '').trim()} #1`}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Correo Electrónico (Opcional)</label>
                   <input
@@ -2437,7 +2637,7 @@ export default function App({ onBack }: AppProps) {
                  onClick={regForm.id ? handleUpdateRegistration : handleCreateRegistration}
                  className="flex-1 bg-[#FF8000] text-canvas py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] cursor-pointer text-center"
                >
-                 {regForm.id ? 'Guardar Cambios' : 'Emitir Ticket'}
+                 {regForm.id ? 'Guardar Cambios' : (regForm.quantity || 1) > 1 ? `Emitir ${regForm.quantity} Tickets` : 'Emitir Ticket'}
                </button>
              </div>
           </div>
@@ -2457,7 +2657,13 @@ export default function App({ onBack }: AppProps) {
           <div className="relative bg-surface w-full tickets-drawer-wide border-l border-divider flex flex-col h-full z-10 shadow-2xl animate-slide-in text-primaryText text-left">
             {/* Header */}
             <div className="px-6 py-5 border-b border-divider flex justify-between items-center bg-inputBg shrink-0">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-[0.12em] text-primaryText">Vista de la Entrada Virtual</h3>
+              <div>
+                <h3 className="font-mono text-xs font-bold uppercase tracking-[0.12em] text-primaryText">Vista de la Entrada Virtual</h3>
+                <p className="text-[9px] font-mono uppercase text-secondaryText mt-0.5">
+                  {showTicketDesigner.event.name} • {showTicketDesigner.ticketCode}
+                  {showTicketDesigner.buyerName ? ` • ${showTicketDesigner.buyerName}` : ''}
+                </p>
+              </div>
               <button 
                 onClick={() => setShowTicketDesigner(null)} 
                 className="text-secondaryText hover:text-primaryText p-1 cursor-pointer transition-colors"
@@ -2485,7 +2691,7 @@ export default function App({ onBack }: AppProps) {
               </div>
               
               <div className="text-[10px] text-secondaryText font-mono uppercase text-center">
-                El código QR se renderiza dinámicamente superpuesto según las coordenadas configuradas en el evento.
+                El código QR y los textos se renderizan dinámicamente superpuestos según las coordenadas configuradas en el evento.
               </div>
             </div>
             
@@ -2498,7 +2704,8 @@ export default function App({ onBack }: AppProps) {
                     if (!canvas) return;
                     const dataUrl = canvas.toDataURL('image/png');
                     const link = document.createElement('a');
-                    link.download = `ticket-${showTicketDesigner.ticketCode}.png`;
+                    const cleanBuyer = showTicketDesigner.buyerName ? `-${showTicketDesigner.buyerName.replace(/\s+/g, '_')}` : '';
+                    link.download = `ticket-${showTicketDesigner.ticketCode}${cleanBuyer}.png`;
                     link.href = dataUrl;
                     document.body.appendChild(link);
                     link.click();
