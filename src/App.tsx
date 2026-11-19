@@ -1619,6 +1619,91 @@ export default function App({ onBack }: AppProps) {
     canceledPct: statsTotal > 0 ? Math.round((statsCanceled / statsTotal) * 100) : 0
   };
 
+  const handleExportCSV = () => {
+    if (filteredRegistrations.length === 0) {
+      showToast('No hay entradas para exportar con los filtros seleccionados', 'error');
+      return;
+    }
+
+    try {
+      const headers = [
+        'Código Ticket',
+        'Comprador / Titular',
+        'Email',
+        'Evento',
+        'Función',
+        'Estado',
+        'Fecha Acreditación',
+        'Fecha Emisión'
+      ];
+
+      const escapeCell = (val: any): string => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const rows = filteredRegistrations.map(reg => {
+        const statusLabel =
+          reg.status === 'checked_in' ? 'Acreditado' :
+          reg.status === 'canceled' ? 'Cancelado' : 'Pendiente';
+
+        const checkedInAt = reg.checked_in_at
+          ? new Date(reg.checked_in_at).toLocaleString('es-ES', {
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', second: '2-digit'
+            })
+          : 'No ingresado';
+
+        const createdAt = reg.created_at
+          ? new Date(reg.created_at).toLocaleString('es-ES', {
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', second: '2-digit'
+            })
+          : '';
+
+        return [
+          escapeCell(reg.ticket_code),
+          escapeCell(reg.buyer_name || 'Sin nombre'),
+          escapeCell(reg.buyer_email || 'Sin correo'),
+          escapeCell(reg.events?.name || 'Evento'),
+          escapeCell(reg.event_function || 'Función única'),
+          escapeCell(statusLabel),
+          escapeCell(checkedInAt),
+          escapeCell(createdAt)
+        ].join(';');
+      });
+
+      // Delimitador ';' y UTF-8 BOM (\uFEFF) para máxima compatibilidad con Microsoft Excel y Google Sheets
+      const csvContent = '\uFEFF' + [headers.map(h => escapeCell(h)).join(';'), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+
+      let baseName = 'tickets';
+      if (activeSelectedEvent?.name) {
+        baseName += `_${activeSelectedEvent.name.toLowerCase().replace(/[^a-z0-9]+/gi, '_')}`;
+      }
+      if (selectedFunction && selectedFunction !== 'all') {
+        baseName += `_${selectedFunction.toLowerCase().replace(/[^a-z0-9]+/gi, '_')}`;
+      }
+      link.download = `${baseName}_${timestamp}.csv`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`Exportados ${filteredRegistrations.length} tickets a Excel / CSV`, 'success');
+    } catch (err: any) {
+      showToast('Error al exportar tickets: ' + err.message, 'error');
+    }
+  };
+
   return (
     <div className="flex-grow flex overflow-hidden bg-canvas text-primaryText antialiased">
       {/* Toast Alert (Always on top of all drawers and backdrops) */}
@@ -1857,6 +1942,16 @@ export default function App({ onBack }: AppProps) {
                     className="p-2.5 bg-surface text-primaryText thin-border font-mono text-xs focus-ring rounded-none min-w-[200px]"
                   />
                 </div>
+                <button
+                  onClick={handleExportCSV}
+                  className="bg-surface border border-divider hover:border-emerald-500/70 text-emerald-400 px-3.5 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-emerald-500/10 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                  title="Exportar entradas filtradas a Excel / CSV"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exportar CSV
+                </button>
                 <button
                   onClick={() => {
                     setScanError(null);
