@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -1488,29 +1488,26 @@ export default function App({ onBack }: AppProps) {
   });
 
   // Estadísticas del evento seleccionado (o globales si es 'all')
-  const statsEventRegistrations = useMemo(() => {
-    if (selectedEventId && selectedEventId !== 'all') {
-      return registrations.filter(reg => reg.event_id === selectedEventId);
-    }
-    return registrations;
-  }, [registrations, selectedEventId]);
+  const statsEventRegistrations = (selectedEventId && selectedEventId !== 'all')
+    ? registrations.filter(reg => reg.event_id === selectedEventId)
+    : registrations;
 
-  const stats = useMemo(() => {
-    const total = statsEventRegistrations.length;
-    const checkedIn = statsEventRegistrations.filter(r => r.status === 'checked_in').length;
-    const pending = statsEventRegistrations.filter(r => r.status === 'pending').length;
-    const canceled = statsEventRegistrations.filter(r => r.status === 'canceled').length;
+  const statsTotal = statsEventRegistrations.length;
+  const statsCheckedIn = statsEventRegistrations.filter(r => r.status === 'checked_in').length;
+  const statsPending = statsEventRegistrations.filter(r => r.status === 'pending').length;
+  const statsCanceled = statsEventRegistrations.filter(r => r.status === 'canceled').length;
 
-    const checkedInPct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
-    const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
-    const canceledPct = total > 0 ? Math.round((canceled / total) * 100) : 0;
+  const stats = {
+    total: statsTotal,
+    checkedIn: statsCheckedIn,
+    pending: statsPending,
+    canceled: statsCanceled,
+    checkedInPct: statsTotal > 0 ? Math.round((statsCheckedIn / statsTotal) * 100) : 0,
+    pendingPct: statsTotal > 0 ? Math.round((statsPending / statsTotal) * 100) : 0,
+    canceledPct: statsTotal > 0 ? Math.round((statsCanceled / statsTotal) * 100) : 0
+  };
 
-    return { total, checkedIn, pending, canceled, checkedInPct, pendingPct, canceledPct };
-  }, [statsEventRegistrations]);
-
-  const activeSelectedEvent = useMemo(() => {
-    return events.find(e => e.id === selectedEventId);
-  }, [events, selectedEventId]);
+  const activeSelectedEvent = events.find(e => e.id === selectedEventId);
 
   return (
     <div className="flex-grow flex overflow-hidden bg-canvas text-primaryText antialiased">
