@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
 import QRCode from 'qrcode';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 // API gateway base URL
 const rawGateway = import.meta.env.VITE_GATEWAY_URL;
@@ -79,7 +79,6 @@ export default function App({ onBack }: AppProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Scanner Operational UI states
-  const [scanCodeInput, setScanCodeInput] = useState<string>('');
   const [scannedResult, setScannedResult] = useState<{
     status: 'accredited' | 'already_checked_in';
     message: string;
@@ -359,21 +358,31 @@ export default function App({ onBack }: AppProps) {
           qrScannerRef.current = null;
         }
 
-        const scanner = new Html5Qrcode("qr-reader");
+        const scanner = new Html5Qrcode("qr-reader", {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
+        });
         scannerInstance = scanner;
         qrScannerRef.current = scanner;
 
         await scanner.start(
           { facingMode: "environment" },
           {
-            fps: 10,
-            qrbox: (width, height) => {
-              const size = Math.min(width, height) * 0.7;
+            fps: 20,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+              const size = Math.floor(minEdge * 0.85);
               return { width: size, height: size };
             }
           },
           (decodedText) => {
             if (isMounted && drawerSubViewRef.current === 'scan') {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                try { navigator.vibrate(50); } catch {}
+              }
               handleScanValidate(decodedText);
             }
           },
@@ -1575,7 +1584,6 @@ export default function App({ onBack }: AppProps) {
           {/* Control de Acceso (QR) Icon */}
           <button 
             onClick={() => {
-              setScanCodeInput('');
               setScanError(null);
               setScannedResult(null);
               setShowScannerDrawer(true);
@@ -1728,7 +1736,6 @@ export default function App({ onBack }: AppProps) {
                 </div>
                 <button
                   onClick={() => {
-                    setScanCodeInput('');
                     setScanError(null);
                     setScannedResult(null);
                     setShowScannerDrawer(true);
@@ -2096,8 +2103,10 @@ export default function App({ onBack }: AppProps) {
                         <div className="tickets-scanner-target">
                           <div className="tickets-scanner-laser"></div>
                         </div>
-                        <span className="text-[8px] font-mono uppercase tracking-[0.15em] text-[#FF8000] bg-canvas/90 px-2 py-0.5 border border-divider mt-3">
-                          Lente Activo...
+                        <span className={`text-[8px] font-mono uppercase tracking-[0.15em] px-2 py-0.5 border border-divider mt-3 transition-colors ${
+                          isScanning ? 'text-emerald-400 bg-emerald-950/90 border-emerald-500/50 animate-pulse' : 'text-[#FF8000] bg-canvas/90'
+                        }`}>
+                          {isScanning ? 'Validando Entrada...' : 'Lente Activo...'}
                         </span>
                       </div>
                     )}
@@ -2121,29 +2130,11 @@ export default function App({ onBack }: AppProps) {
                     <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
                   </div>
 
-                  {/* Manual input simulation */}
-                  <div className="w-full mt-2 space-y-2">
-                    <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
-                      Digitar Código Manual (Simular escaneo)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Ej. EVT-123456"
-                        value={scanCodeInput}
-                        onChange={(e) => setScanCodeInput(e.target.value)}
-                        className="flex-1 bg-inputBg border border-divider px-3 py-2.5 text-xs text-primaryText font-mono uppercase focus:border-secondaryText focus:outline-none rounded-none"
-                      />
-                      <button
-                        onClick={() => {
-                          handleScanValidate(scanCodeInput.trim().toUpperCase());
-                        }}
-                        disabled={isScanning || !scanCodeInput}
-                        className="bg-inputBg hover:bg-divider border border-divider text-[#FF8000] px-5 py-2.5 rounded-none font-mono uppercase font-bold text-[11px] tracking-wider transition-all disabled:opacity-50 cursor-pointer"
-                      >
-                        {isScanning ? 'Validando...' : 'Buscar'}
-                      </button>
-                    </div>
+                  {/* Instructions badge */}
+                  <div className="w-full text-center pt-1">
+                    <p className="text-[10px] font-mono text-mutedText uppercase tracking-wider">
+                      Apunta la cámara al código QR de la entrada para validar
+                    </p>
                   </div>
                 </div>
 
@@ -2174,7 +2165,6 @@ export default function App({ onBack }: AppProps) {
                       onClick={() => {
                         setScannedResult(null);
                         setScanError(null);
-                        setScanCodeInput('');
                         setDrawerSubView('scan');
                       }}
                       className="flex items-center gap-2 text-secondaryText hover:text-white font-mono uppercase font-bold text-[10px] tracking-wider mb-6 pb-2 border-b border-divider/40 w-full cursor-pointer text-left"
