@@ -9,6 +9,12 @@ const gatewayUrl = (typeof window !== 'undefined' && window.location.hostname !=
   ? '/api'
   : (rawGateway || 'http://localhost:3000');
 
+interface EventFunction {
+  id: string;
+  name: string;
+  time?: string;
+}
+
 interface Event {
   id: string;
   name: string;
@@ -16,6 +22,7 @@ interface Event {
   venue: string;
   base_image_url: string | null;
   qr_config: any;
+  functions?: EventFunction[] | string[];
   created_at: string;
 }
 
@@ -34,6 +41,7 @@ interface Registration {
   ticket_code: string;
   buyer_name: string;
   buyer_email: string;
+  event_function?: string | null;
   status: 'pending' | 'checked_in' | 'canceled';
   checked_in_at: string | null;
   created_at: string;
@@ -49,6 +57,16 @@ interface RegistrationItem {
   event_items?: EventItem;
 }
 
+const normalizeEventFunctions = (functions: any): EventFunction[] => {
+  if (!Array.isArray(functions)) return [];
+  return functions.map((f, idx) => {
+    if (typeof f === 'string') {
+      return { id: `fn-${idx}`, name: f, time: '' };
+    }
+    return { id: f.id || `fn-${idx}`, name: f.name || `Función ${idx + 1}`, time: f.time || '' };
+  });
+};
+
 interface AppProps {
   onBack?: () => void;
 }
@@ -61,6 +79,8 @@ export default function App({ onBack }: AppProps) {
   const [tenantId, setTenantId] = useState<string>('');
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [selectedFunction, setSelectedFunction] = useState<string>('all');
+  const [scannerTargetFunction, setScannerTargetFunction] = useState<string>('all');
   const [eventItems, setEventItems] = useState<EventItem[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   
@@ -72,7 +92,7 @@ export default function App({ onBack }: AppProps) {
   const [showEventModal, setShowEventModal] = useState<boolean>(false);
   const [showItemModal, setShowItemModal] = useState<boolean>(false);
   const [showRegModal, setShowRegModal] = useState<boolean>(false);
-  const [showTicketDesigner, setShowTicketDesigner] = useState<{ event: Event, ticketCode: string, buyerName?: string } | null>(null);
+  const [showTicketDesigner, setShowTicketDesigner] = useState<{ event: Event, ticketCode: string, buyerName?: string, eventFunction?: string } | null>(null);
   const [showScannerDrawer, setShowScannerDrawer] = useState<boolean>(false);
 
   // Search state
@@ -118,6 +138,7 @@ export default function App({ onBack }: AppProps) {
     venue: string;
     base_image_url: string;
     qr_config: any;
+    functions: EventFunction[];
   }>({
     name: '',
     date: '',
@@ -127,9 +148,11 @@ export default function App({ onBack }: AppProps) {
       qr: { x: 450, y: 40, size: 100 },
       code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
       event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
-      attendee: { x: 30, y: 85, size: 16, color: '#FFFFFF' },
+      function: { x: 30, y: 70, size: 14, color: '#FF8000' },
+      attendee: { x: 30, y: 95, size: 16, color: '#FFFFFF' },
       number: { x: 30, y: 125, size: 16, color: '#FF8000' }
-    }
+    },
+    functions: []
   });
 
   const [itemForm, setItemForm] = useState<{
@@ -152,12 +175,14 @@ export default function App({ onBack }: AppProps) {
     event_id: string;
     buyer_name: string;
     buyer_email: string;
+    event_function: string;
     selected_items: string[];
     quantity?: number;
   }>({
     event_id: '',
     buyer_name: '',
     buyer_email: '',
+    event_function: '',
     selected_items: [],
     quantity: 1
   });
@@ -191,6 +216,7 @@ export default function App({ onBack }: AppProps) {
       const qrConfig = eventForm.qr_config?.qr || {};
       const codeConfig = eventForm.qr_config?.code || {};
       const eventConfig = eventForm.qr_config?.event || eventForm.qr_config?.name || {};
+      const functionConfig = eventForm.qr_config?.function || eventForm.qr_config?.funcion;
       const attendeeConfig = eventForm.qr_config?.attendee || eventForm.qr_config?.buyer;
       const numberConfig = eventForm.qr_config?.number || eventForm.qr_config?.ticket_number;
 
@@ -208,6 +234,17 @@ export default function App({ onBack }: AppProps) {
         ctx.fillStyle = eventConfig.color || '#FFFFFF';
         ctx.font = `bold ${eventSize}px Courier New`;
         ctx.fillText((eventForm.name || 'EVENTO DE PRUEBA').toUpperCase(), Number(eventConfig.x) ?? (imgWidth * 0.05), Number(eventConfig.y) ?? (imgHeight * 0.22));
+      }
+
+      // Draw Function Name (if configured or preview)
+      const previewFnName = eventForm.functions && eventForm.functions.length > 0
+        ? eventForm.functions[0].name
+        : '1ª FUNCIÓN';
+      if (functionConfig && functionConfig.visible !== false) {
+        const funcSize = Number(functionConfig.size) || Math.max(12, Math.round(imgHeight * 0.07));
+        ctx.fillStyle = functionConfig.color || '#FF8000';
+        ctx.font = `bold ${funcSize}px Courier New`;
+        ctx.fillText(previewFnName.toUpperCase(), Number(functionConfig.x) ?? (imgWidth * 0.05), Number(functionConfig.y) ?? (imgHeight * 0.35));
       }
 
       // Draw Attendee (if configured or preview)
@@ -542,7 +579,8 @@ export default function App({ onBack }: AppProps) {
         qr: { x: 450, y: 40, size: 100 },
         code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
         event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
-        attendee: { x: 30, y: 85, size: 16, color: '#FFFFFF' },
+        function: { x: 30, y: 70, size: 14, color: '#FF8000' },
+        attendee: { x: 30, y: 95, size: 16, color: '#FFFFFF' },
         number: { x: 30, y: 125, size: 16, color: '#FF8000' }
       };
       setEventForm(prev => ({
@@ -566,7 +604,8 @@ export default function App({ onBack }: AppProps) {
       date: dateVal,
       venue: event.venue,
       base_image_url: event.base_image_url || '',
-      qr_config: event.qr_config
+      qr_config: event.qr_config,
+      functions: normalizeEventFunctions(event.functions)
     });
     setJsonEditorText(JSON.stringify(event.qr_config, null, 2));
     setJsonError(null);
@@ -585,9 +624,11 @@ export default function App({ onBack }: AppProps) {
         qr: { x: 450, y: 40, size: 100 },
         code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
         event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
-        attendee: { x: 30, y: 85, size: 16, color: '#FFFFFF' },
+        function: { x: 30, y: 70, size: 14, color: '#FF8000' },
+        attendee: { x: 30, y: 95, size: 16, color: '#FFFFFF' },
         number: { x: 30, y: 125, size: 16, color: '#FF8000' }
-      }
+      },
+      functions: []
     });
     setJsonEditorText('');
     setJsonError(null);
@@ -611,7 +652,8 @@ export default function App({ onBack }: AppProps) {
           date: new Date(eventForm.date).toISOString(),
           venue: eventForm.venue,
           base_image_url: eventForm.base_image_url || null,
-          qr_config: eventForm.qr_config
+          qr_config: eventForm.qr_config,
+          functions: eventForm.functions || []
         }),
         credentials: 'include'
       });
@@ -628,8 +670,12 @@ export default function App({ onBack }: AppProps) {
           qr_config: {
             qr: { x: 450, y: 40, size: 100 },
             code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
-            name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
-          }
+            event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
+            function: { x: 30, y: 70, size: 14, color: '#FF8000' },
+            attendee: { x: 30, y: 95, size: 16, color: '#FFFFFF' },
+            number: { x: 30, y: 125, size: 16, color: '#FF8000' }
+          },
+          functions: []
         });
         setJsonEditorText('');
         setJsonError(null);
@@ -663,6 +709,7 @@ export default function App({ onBack }: AppProps) {
           venue: eventForm.venue,
           base_image_url: eventForm.base_image_url || null,
           qr_config: eventForm.qr_config,
+          functions: eventForm.functions || [],
           tenant_id: tenantId
         }),
         credentials: 'include'
@@ -681,8 +728,12 @@ export default function App({ onBack }: AppProps) {
           qr_config: {
             qr: { x: 450, y: 40, size: 100 },
             code: { x: 30, y: 175, size: 16, color: '#FFFFFF' },
-            name: { x: 30, y: 45, size: 16, color: '#FFFFFF' }
-          }
+            event: { x: 30, y: 45, size: 16, color: '#FFFFFF' },
+            function: { x: 30, y: 70, size: 14, color: '#FF8000' },
+            attendee: { x: 30, y: 95, size: 16, color: '#FFFFFF' },
+            number: { x: 30, y: 125, size: 16, color: '#FF8000' }
+          },
+          functions: []
         });
         setJsonEditorText('');
         setJsonError(null);
@@ -845,11 +896,16 @@ export default function App({ onBack }: AppProps) {
       ? selectedEventId
       : (events[0]?.id || '');
 
+    const currentEv = events.find(e => e.id === defaultEventId);
+    const funcs = normalizeEventFunctions(currentEv?.functions);
+    const defaultFunction = funcs.length > 0 ? funcs[0].name : '';
+
     setRegForm({
       id: undefined,
       event_id: defaultEventId,
       buyer_name: '',
       buyer_email: '',
+      event_function: defaultFunction,
       selected_items: [],
       quantity: 1
     });
@@ -892,6 +948,7 @@ export default function App({ onBack }: AppProps) {
             ticket_code: uniqueCode,
             buyer_name: finalBuyerName,
             buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
+            event_function: regForm.event_function || null,
             status: 'pending',
             tenant_id: tenantId
           }),
@@ -932,6 +989,7 @@ export default function App({ onBack }: AppProps) {
         event_id: '',
         buyer_name: '',
         buyer_email: '',
+        event_function: '',
         selected_items: [],
         quantity: 1
       });
@@ -958,6 +1016,7 @@ export default function App({ onBack }: AppProps) {
         body: JSON.stringify({
           buyer_name: regForm.buyer_name,
           buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
+          event_function: regForm.event_function || null,
           updated_at: new Date().toISOString()
         }),
         credentials: 'include'
@@ -1014,6 +1073,7 @@ export default function App({ onBack }: AppProps) {
         event_id: '',
         buyer_name: '',
         buyer_email: '',
+        event_function: '',
         selected_items: []
       });
 
@@ -1060,6 +1120,7 @@ export default function App({ onBack }: AppProps) {
           event_id: reg.event_id,
           buyer_name: reg.buyer_name,
           buyer_email: reg.buyer_email || '',
+          event_function: reg.event_function || '',
           selected_items: selectedItemIds,
           quantity: 1
         });
@@ -1238,8 +1299,8 @@ export default function App({ onBack }: AppProps) {
   };
 
   // Composes ticket base image + QR code into Canvas preview
-  const handleDrawTicket = (event: Event, ticketCode: string, buyerName: string = '') => {
-    setShowTicketDesigner({ event, ticketCode, buyerName });
+  const handleDrawTicket = (event: Event, ticketCode: string, buyerName: string = '', eventFunction: string = '') => {
+    setShowTicketDesigner({ event, ticketCode, buyerName, eventFunction });
     setTimeout(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -1264,6 +1325,7 @@ export default function App({ onBack }: AppProps) {
         const qrConfig = event.qr_config?.qr || {};
         const codeConfig = event.qr_config?.code || {};
         const eventConfig = event.qr_config?.event || event.qr_config?.name || {};
+        const functionConfig = event.qr_config?.function || event.qr_config?.funcion;
         const attendeeConfig = event.qr_config?.attendee || event.qr_config?.buyer || event.qr_config?.buyer_name;
         const numberConfig = event.qr_config?.number || event.qr_config?.ticket_number || event.qr_config?.numero;
 
@@ -1293,12 +1355,25 @@ export default function App({ onBack }: AppProps) {
           ctx.fillText(event.name.toUpperCase(), eventX, eventY);
         }
 
-        // 3. Draw Attendee Name Text
+        // 3. Draw Function Name Text (if configured)
+        const fnNameToDraw = eventFunction || (event.functions && event.functions.length > 0 ? (typeof event.functions[0] === 'string' ? event.functions[0] : event.functions[0]?.name) : '');
+        if (functionConfig && functionConfig.visible !== false && fnNameToDraw) {
+          const funcSize = Number(functionConfig.size) || Math.max(12, Math.round(imgHeight * 0.07));
+          const funcColor = functionConfig.color || '#FF8000';
+          const funcX = Number(functionConfig.x) ?? (imgWidth * 0.05);
+          const funcY = Number(functionConfig.y) ?? (imgHeight * 0.35);
+
+          ctx.fillStyle = funcColor;
+          ctx.font = `bold ${funcSize}px Courier New`;
+          ctx.fillText(fnNameToDraw.toUpperCase(), funcX, funcY);
+        }
+
+        // 4. Draw Attendee Name Text
         if (attendeeConfig && attendeeConfig.visible !== false) {
           const attSize = Number(attendeeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
           const attColor = attendeeConfig.color || '#FFFFFF';
           const attX = Number(attendeeConfig.x) ?? (imgWidth * 0.05);
-          const attY = Number(attendeeConfig.y) ?? (imgHeight * 0.45);
+          const attY = Number(attendeeConfig.y) ?? (imgHeight * 0.48);
 
           ctx.fillStyle = attColor;
           ctx.font = `bold ${attSize}px Courier New`;
@@ -1308,10 +1383,10 @@ export default function App({ onBack }: AppProps) {
           const attSize = Math.max(13, Math.round(imgHeight * 0.07));
           ctx.fillStyle = '#FFFFFF';
           ctx.font = `bold ${attSize}px Courier New`;
-          ctx.fillText(buyerName.toUpperCase(), imgWidth * 0.05, imgHeight * 0.45);
+          ctx.fillText(buyerName.toUpperCase(), imgWidth * 0.05, imgHeight * 0.48);
         }
 
-        // 4. Draw Ticket Number Text (#1, #2, etc.)
+        // 5. Draw Ticket Number Text (#1, #2, etc.)
         if (numberConfig && numberConfig.visible !== false) {
           const numSize = Number(numberConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
           const numColor = numberConfig.color || '#FF8000';
@@ -1345,7 +1420,7 @@ export default function App({ onBack }: AppProps) {
     }, 100);
   };
 
-  const handleDownloadTicketDirectly = (event: Event, ticketCode: string, buyerName: string = '') => {
+  const handleDownloadTicketDirectly = (event: Event, ticketCode: string, buyerName: string = '', eventFunction: string = '') => {
     showToast('Generando ticket para descarga...', 'info');
 
     const canvas = document.createElement('canvas');
@@ -1371,6 +1446,7 @@ export default function App({ onBack }: AppProps) {
       const qrConfig = event.qr_config?.qr || {};
       const codeConfig = event.qr_config?.code || {};
       const eventConfig = event.qr_config?.event || event.qr_config?.name || {};
+      const functionConfig = event.qr_config?.function || event.qr_config?.funcion;
       const attendeeConfig = event.qr_config?.attendee || event.qr_config?.buyer || event.qr_config?.buyer_name;
       const numberConfig = event.qr_config?.number || event.qr_config?.ticket_number || event.qr_config?.numero;
 
@@ -1400,12 +1476,25 @@ export default function App({ onBack }: AppProps) {
         ctx.fillText(event.name.toUpperCase(), eventX, eventY);
       }
 
+      // Draw Function Name
+      const fnNameToDraw = eventFunction || (event.functions && event.functions.length > 0 ? (typeof event.functions[0] === 'string' ? event.functions[0] : event.functions[0]?.name) : '');
+      if (functionConfig && functionConfig.visible !== false && fnNameToDraw) {
+        const funcSize = Number(functionConfig.size) || Math.max(12, Math.round(imgHeight * 0.07));
+        const funcColor = functionConfig.color || '#FF8000';
+        const funcX = Number(functionConfig.x) ?? (imgWidth * 0.05);
+        const funcY = Number(functionConfig.y) ?? (imgHeight * 0.35);
+
+        ctx.fillStyle = funcColor;
+        ctx.font = `bold ${funcSize}px Courier New`;
+        ctx.fillText(fnNameToDraw.toUpperCase(), funcX, funcY);
+      }
+
       // Draw Attendee
       if (attendeeConfig && attendeeConfig.visible !== false) {
         const attSize = Number(attendeeConfig.size) || Math.max(14, Math.round(imgHeight * 0.08));
         const attColor = attendeeConfig.color || '#FFFFFF';
         const attX = Number(attendeeConfig.x) ?? (imgWidth * 0.05);
-        const attY = Number(attendeeConfig.y) ?? (imgHeight * 0.45);
+        const attY = Number(attendeeConfig.y) ?? (imgHeight * 0.48);
 
         ctx.fillStyle = attColor;
         ctx.font = `bold ${attSize}px Courier New`;
@@ -1415,7 +1504,7 @@ export default function App({ onBack }: AppProps) {
         const attSize = Math.max(13, Math.round(imgHeight * 0.07));
         ctx.fillStyle = '#FFFFFF';
         ctx.font = `bold ${attSize}px Courier New`;
-        ctx.fillText(buyerName.toUpperCase(), imgWidth * 0.05, imgHeight * 0.45);
+        ctx.fillText(buyerName.toUpperCase(), imgWidth * 0.05, imgHeight * 0.48);
       }
 
       // Draw Number
@@ -1480,26 +1569,40 @@ export default function App({ onBack }: AppProps) {
     );
   }
 
+  const activeSelectedEvent = events.find(e => e.id === selectedEventId);
+  const activeEventFunctions = normalizeEventFunctions(activeSelectedEvent?.functions);
+
   const filteredRegistrations = registrations.filter(reg => {
     // 1. Filtrado general por evento seleccionado (si no es 'all' y hay eventos)
     if (selectedEventId && selectedEventId !== 'all' && reg.event_id !== selectedEventId) {
       return false;
     }
-    // 2. Filtrado por término de búsqueda
+    // 2. Filtrado por función seleccionada
+    if (selectedFunction && selectedFunction !== 'all' && reg.event_function !== selectedFunction) {
+      return false;
+    }
+    // 3. Filtrado por término de búsqueda
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
     return (
       (reg.buyer_name && reg.buyer_name.toLowerCase().includes(query)) ||
       (reg.buyer_email && reg.buyer_email.toLowerCase().includes(query)) ||
       (reg.ticket_code && reg.ticket_code.toLowerCase().includes(query)) ||
+      (reg.event_function && reg.event_function.toLowerCase().includes(query)) ||
       (reg.events?.name && reg.events.name.toLowerCase().includes(query))
     );
   });
 
   // Estadísticas del evento seleccionado (o globales si es 'all')
   const statsEventRegistrations = (selectedEventId && selectedEventId !== 'all')
-    ? registrations.filter(reg => reg.event_id === selectedEventId)
-    : registrations;
+    ? registrations.filter(reg => {
+        if (reg.event_id !== selectedEventId) return false;
+        if (selectedFunction && selectedFunction !== 'all' && reg.event_function !== selectedFunction) return false;
+        return true;
+      })
+    : (selectedFunction && selectedFunction !== 'all'
+        ? registrations.filter(reg => reg.event_function === selectedFunction)
+        : registrations);
 
   const statsTotal = statsEventRegistrations.length;
   const statsCheckedIn = statsEventRegistrations.filter(r => r.status === 'checked_in').length;
@@ -1515,8 +1618,6 @@ export default function App({ onBack }: AppProps) {
     pendingPct: statsTotal > 0 ? Math.round((statsPending / statsTotal) * 100) : 0,
     canceledPct: statsTotal > 0 ? Math.round((statsCanceled / statsTotal) * 100) : 0
   };
-
-  const activeSelectedEvent = events.find(e => e.id === selectedEventId);
 
   return (
     <div className="flex-grow flex overflow-hidden bg-canvas text-primaryText antialiased">
@@ -1714,7 +1815,10 @@ export default function App({ onBack }: AppProps) {
                 <div className="relative">
                   <select
                     value={selectedEventId}
-                    onChange={(e) => setSelectedEventId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedEventId(e.target.value);
+                      setSelectedFunction('all');
+                    }}
                     className="w-full sm:w-auto p-2.5 bg-surface text-primaryText thin-border font-mono text-xs focus-ring rounded-none cursor-pointer max-w-[240px] truncate"
                     title="Filtrar por Evento"
                   >
@@ -1724,6 +1828,25 @@ export default function App({ onBack }: AppProps) {
                     ))}
                   </select>
                 </div>
+
+                {/* Sub-filtro por Función (si el evento seleccionado tiene funciones) */}
+                {activeEventFunctions.length > 0 && (
+                  <div className="relative animate-fade-in">
+                    <select
+                      value={selectedFunction}
+                      onChange={(e) => setSelectedFunction(e.target.value)}
+                      className="w-full sm:w-auto p-2.5 bg-surface text-[#FF8000] border border-[#FF8000]/40 font-mono text-xs focus-ring rounded-none cursor-pointer max-w-[200px] truncate"
+                      title="Filtrar por Función"
+                    >
+                      <option value="all">🎪 Todas las Funciones</option>
+                      {activeEventFunctions.map(fn => (
+                        <option key={fn.id} value={fn.name}>
+                          {fn.name} {fn.time ? `(${fn.time} hs)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="relative">
                   <input 
@@ -1770,7 +1893,9 @@ export default function App({ onBack }: AppProps) {
                 </div>
                 <div className="mt-2.5 pt-2 border-t border-divider/40 flex items-center justify-between text-[9px] font-mono text-mutedText">
                   <span className="truncate max-w-[130px] font-medium text-secondaryText">
-                    {activeSelectedEvent ? activeSelectedEvent.name : (selectedEventId === 'all' ? 'Todos los eventos' : 'Evento actual')}
+                    {activeSelectedEvent 
+                      ? (selectedFunction !== 'all' ? `${activeSelectedEvent.name} • ${selectedFunction}` : activeSelectedEvent.name)
+                      : (selectedEventId === 'all' ? 'Todos los eventos' : 'Evento actual')}
                   </span>
                   <span className="text-accentBlue font-bold">100%</span>
                 </div>
@@ -1876,6 +2001,11 @@ export default function App({ onBack }: AppProps) {
                       <span className="font-sans text-xs font-semibold text-primaryText mt-1.5 uppercase tracking-tight truncate">
                         {reg.events?.name}
                       </span>
+                      {reg.event_function && (
+                        <span className="text-[9px] font-mono text-[#FF8000] font-bold mt-0.5 truncate flex items-center gap-1">
+                          <span>🎪</span> {reg.event_function}
+                        </span>
+                      )}
                     </div>
 
                     {/* Col 3: Ticket Code */}
@@ -1910,7 +2040,7 @@ export default function App({ onBack }: AppProps) {
                     {/* Col 5: Actions */}
                     <div className="flex w-full justify-start md:justify-end border-t md:border-t-0 border-divider pt-3 md:pt-0 gap-2">
                       <button
-                        onClick={() => handleDrawTicket(reg.events!, reg.ticket_code, reg.buyer_name)}
+                        onClick={() => handleDrawTicket(reg.events!, reg.ticket_code, reg.buyer_name, reg.event_function || '')}
                         className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-secondaryText hover:text-white cursor-pointer transition-colors"
                         title="Visualizar Entrada"
                       >
@@ -2088,6 +2218,32 @@ export default function App({ onBack }: AppProps) {
                 style={{ display: drawerSubView === 'scan' ? 'block' : 'none' }} 
                 className="space-y-6 animate-fade-in"
               >
+                {/* Active Function filter in door */}
+                {activeEventFunctions.length > 0 && (
+                  <div className="bg-canvas border border-divider p-3 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-mono text-mutedText uppercase tracking-wider block">
+                        Controlando Acceso Para:
+                      </span>
+                      <span className="text-xs font-mono font-bold text-[#FF8000] uppercase">
+                        {scannerTargetFunction === 'all' ? 'Cualquier Función' : scannerTargetFunction}
+                      </span>
+                    </div>
+                    <select
+                      value={scannerTargetFunction}
+                      onChange={(e) => setScannerTargetFunction(e.target.value)}
+                      className="bg-surface text-primaryText border border-divider px-2.5 py-1.5 text-xs font-mono focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">⚡ Cualquier Función</option>
+                      {activeEventFunctions.map(fn => (
+                        <option key={fn.id} value={fn.name}>
+                          {fn.name} {fn.time ? `(${fn.time} hs)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Camera Scanner Area */}
                 <div className="bg-canvas border border-divider p-6 flex flex-col items-center rounded-none relative space-y-6">
                   {/* Virtual Scanner Screen */}
@@ -2214,6 +2370,23 @@ export default function App({ onBack }: AppProps) {
                             Fecha: {registration.events?.date && new Date(registration.events.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                           </span>
                         </div>
+                        {registration.event_function && (
+                          <div className="space-y-1 md:col-span-2 pt-2 border-t border-divider/40">
+                            <span className="text-[9px] text-[#FF8000] block font-mono uppercase tracking-wider font-bold">
+                              Función / Subdivisión Asignada
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold font-mono text-primaryText uppercase">
+                                🎪 {registration.event_function}
+                              </span>
+                              {scannerTargetFunction !== 'all' && registration.event_function !== scannerTargetFunction && (
+                                <span className="bg-amber-500/20 text-amber-400 border border-amber-500/50 px-2 py-0.5 text-[9px] font-mono uppercase font-bold animate-pulse">
+                                  ⚠️ No coincide con {scannerTargetFunction}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -2372,6 +2545,75 @@ export default function App({ onBack }: AppProps) {
                         placeholder="Ej. Polideportivo Central"
                       />
                     </div>
+
+                    {/* Subdivisiones / Funciones */}
+                    <div className="pt-2 border-t border-divider/60 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-mono font-bold text-[#FF8000] uppercase tracking-wider block">
+                          Funciones / Subdivisiones
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newFnNumber = (eventForm.functions?.length || 0) + 1;
+                            const newFn = { id: crypto.randomUUID(), name: `${newFnNumber}ª Función`, time: '' };
+                            setEventForm({
+                              ...eventForm,
+                              functions: [...(eventForm.functions || []), newFn]
+                            });
+                          }}
+                          className="text-[9px] font-mono uppercase font-bold text-[#FF8000] hover:text-white flex items-center gap-1 cursor-pointer"
+                        >
+                          + Añadir Función
+                        </button>
+                      </div>
+
+                      {(!eventForm.functions || eventForm.functions.length === 0) ? (
+                        <p className="text-[9px] font-mono text-secondaryText italic">
+                          Sin funciones adicionales (función única estándar).
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {eventForm.functions.map((fn, idx) => (
+                            <div key={fn.id || idx} className="flex gap-2 items-center bg-inputBg p-2 border border-divider">
+                              <input
+                                type="text"
+                                placeholder={`Ej. ${idx + 1}ª Función`}
+                                value={fn.name}
+                                onChange={(e) => {
+                                  const updated = [...eventForm.functions];
+                                  updated[idx] = { ...updated[idx], name: e.target.value };
+                                  setEventForm({ ...eventForm, functions: updated });
+                                }}
+                                className="flex-1 bg-transparent text-xs text-primaryText font-mono focus:outline-none"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Horario (ej. 18:00)"
+                                value={fn.time || ''}
+                                onChange={(e) => {
+                                  const updated = [...eventForm.functions];
+                                  updated[idx] = { ...updated[idx], time: e.target.value };
+                                  setEventForm({ ...eventForm, functions: updated });
+                                }}
+                                className="w-24 bg-surface border border-divider/60 px-2 py-1 text-[10px] text-primaryText font-mono focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = eventForm.functions.filter((_, i) => i !== idx);
+                                  setEventForm({ ...eventForm, functions: updated });
+                                }}
+                                className="text-secondaryText hover:text-rose-400 font-mono text-xs px-1 cursor-pointer"
+                                title="Eliminar función"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Columna 2: Imagen de Fondo */}
@@ -2470,7 +2712,7 @@ export default function App({ onBack }: AppProps) {
                           JSON del QR y Textos
                         </label>
                         <span className="text-[8px] font-mono text-[#FF8000] uppercase tracking-wider">
-                          qr • code • event • attendee • number
+                          qr • code • event • function • attendee • number
                         </span>
                       </div>
                       <textarea
@@ -2621,7 +2863,14 @@ export default function App({ onBack }: AppProps) {
                     value={regForm.event_id || (selectedEventId !== 'all' ? selectedEventId : '')}
                     onChange={(e) => {
                       const newId = e.target.value;
-                      setRegForm({ ...regForm, event_id: newId, selected_items: [] });
+                      const selectedEv = events.find(ev => ev.id === newId);
+                      const funcs = normalizeEventFunctions(selectedEv?.functions);
+                      setRegForm({
+                        ...regForm,
+                        event_id: newId,
+                        event_function: funcs.length > 0 ? funcs[0].name : '',
+                        selected_items: []
+                      });
                       if (newId) {
                         loadEventItems(newId);
                       } else {
@@ -2636,6 +2885,33 @@ export default function App({ onBack }: AppProps) {
                     ))}
                   </select>
                 </div>
+
+                {/* Selector de Función (si el evento tiene funciones) */}
+                {(() => {
+                  const evId = regForm.event_id || (selectedEventId !== 'all' ? selectedEventId : '');
+                  const currentEv = events.find(e => e.id === evId);
+                  const funcs = normalizeEventFunctions(currentEv?.functions);
+                  if (funcs.length === 0) return null;
+
+                  return (
+                    <div className="space-y-1 animate-fade-in">
+                      <label className="text-[10px] font-mono font-bold text-[#FF8000] uppercase tracking-wider block">
+                        Función / Subdivisión *
+                      </label>
+                      <select
+                        value={regForm.event_function || funcs[0]?.name || ''}
+                        onChange={(e) => setRegForm({ ...regForm, event_function: e.target.value })}
+                        className="w-full bg-inputBg border border-[#FF8000]/40 px-3 py-2 text-xs text-primaryText font-mono focus:border-[#FF8000] focus:outline-none rounded-none cursor-pointer"
+                      >
+                        {funcs.map(fn => (
+                          <option key={fn.id} value={fn.name}>
+                            {fn.name} {fn.time ? `(${fn.time} hs)` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">Nombre del Participante *</label>
                   <input
@@ -2771,6 +3047,7 @@ export default function App({ onBack }: AppProps) {
                 <h3 className="font-mono text-xs font-bold uppercase tracking-[0.12em] text-primaryText">Vista de la Entrada Virtual</h3>
                 <p className="text-[9px] font-mono uppercase text-secondaryText mt-0.5">
                   {showTicketDesigner.event.name} • {showTicketDesigner.ticketCode}
+                  {showTicketDesigner.eventFunction ? ` • 🎪 ${showTicketDesigner.eventFunction}` : ''}
                   {showTicketDesigner.buyerName ? ` • ${showTicketDesigner.buyerName}` : ''}
                 </p>
               </div>
@@ -2814,8 +3091,9 @@ export default function App({ onBack }: AppProps) {
                     if (!canvas) return;
                     const dataUrl = canvas.toDataURL('image/png');
                     const link = document.createElement('a');
+                    const cleanFunc = showTicketDesigner.eventFunction ? `-${showTicketDesigner.eventFunction.replace(/\s+/g, '_')}` : '';
                     const cleanBuyer = showTicketDesigner.buyerName ? `-${showTicketDesigner.buyerName.replace(/\s+/g, '_')}` : '';
-                    link.download = `ticket-${showTicketDesigner.ticketCode}${cleanBuyer}.png`;
+                    link.download = `ticket-${showTicketDesigner.ticketCode}${cleanFunc}${cleanBuyer}.png`;
                     link.href = dataUrl;
                     document.body.appendChild(link);
                     link.click();
