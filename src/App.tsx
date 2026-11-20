@@ -488,7 +488,14 @@ export default function App({ onBack }: AppProps) {
 
   const loadRegistrations = async () => {
     try {
-      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?select=*,events(*)&order=created_at.desc`, { credentials: 'include' });
+      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?select=*,events(*)&order=created_at.desc&_t=${Date.now()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (res.ok) {
         setRegistrations(await res.json());
       }
@@ -1006,17 +1013,22 @@ export default function App({ onBack }: AppProps) {
       return;
     }
 
+    const currentEv = events.find(ev => ev.id === (regForm.event_id || selectedEventId));
+    const funcs = normalizeEventFunctions(currentEv?.functions);
+    const targetFunction = regForm.event_function || (funcs.length > 0 ? funcs[0].name : null);
+
     try {
-      // 1. Update registrations name & email
+      // 1. Update registrations name & email & function
       const regRes = await fetch(`${gatewayUrl}/rest/v1/registrations?id=eq.${regForm.id}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
         },
         body: JSON.stringify({
           buyer_name: regForm.buyer_name,
           buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
-          event_function: regForm.event_function || null,
+          event_function: targetFunction,
           updated_at: new Date().toISOString()
         }),
         credentials: 'include'
@@ -1065,6 +1077,19 @@ export default function App({ onBack }: AppProps) {
         if (!insRes.ok) throw new Error(await insRes.text());
       }
 
+      // 5. Actualización optimista inmediata en el estado de React
+      setRegistrations(prev => prev.map(r => {
+        if (r.id === regForm.id) {
+          return {
+            ...r,
+            buyer_name: regForm.buyer_name,
+            buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
+            event_function: targetFunction
+          };
+        }
+        return r;
+      }));
+
       showToast('Ticket actualizado con éxito', 'success');
       setShowRegModal(false);
       
@@ -1095,6 +1120,7 @@ export default function App({ onBack }: AppProps) {
       });
 
       if (res.ok) {
+        setRegistrations(prev => prev.filter(r => r.id !== regId));
         showToast('Ticket eliminado con éxito', 'success');
         await loadRegistrations();
       } else {
@@ -1114,13 +1140,17 @@ export default function App({ onBack }: AppProps) {
       if (res.ok) {
         const items = await res.json();
         const selectedItemIds = items.map((i: any) => i.event_item_id);
+
+        const currentEv = events.find(e => e.id === reg.event_id);
+        const funcs = normalizeEventFunctions(currentEv?.functions);
+        const initialFunc = reg.event_function || (funcs.length > 0 ? funcs[0].name : '');
         
         setRegForm({
           id: reg.id,
           event_id: reg.event_id,
           buyer_name: reg.buyer_name,
           buyer_email: reg.buyer_email || '',
-          event_function: reg.event_function || '',
+          event_function: initialFunc,
           selected_items: selectedItemIds,
           quantity: 1
         });
@@ -1536,8 +1566,9 @@ export default function App({ onBack }: AppProps) {
             try {
               const dataUrl = canvas.toDataURL('image/png');
               const link = document.createElement('a');
+              const cleanFunc = eventFunction ? `-${eventFunction.replace(/\s+/g, '_')}` : '';
               const cleanBuyer = buyerName ? `-${buyerName.replace(/\s+/g, '_')}` : '';
-              link.download = `ticket-${ticketCode}${cleanBuyer}.png`;
+              link.download = `ticket-${ticketCode}${cleanFunc}${cleanBuyer}.png`;
               link.href = dataUrl;
               document.body.appendChild(link);
               link.click();
@@ -2096,10 +2127,16 @@ export default function App({ onBack }: AppProps) {
                       <span className="font-sans text-xs font-semibold text-primaryText mt-1.5 uppercase tracking-tight truncate">
                         {reg.events?.name}
                       </span>
-                      {reg.event_function && (
+                      {reg.event_function ? (
                         <span className="text-[9px] font-mono text-[#FF8000] font-bold mt-0.5 truncate flex items-center gap-1">
                           <span>🎪</span> {reg.event_function}
                         </span>
+                      ) : (
+                        normalizeEventFunctions(reg.events?.functions).length > 0 ? (
+                          <span className="text-[9px] font-mono text-mutedText/60 mt-0.5 truncate italic">
+                            🎪 Sin función
+                          </span>
+                        ) : null
                       )}
                     </div>
 
@@ -2145,7 +2182,7 @@ export default function App({ onBack }: AppProps) {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDownloadTicketDirectly(reg.events!, reg.ticket_code, reg.buyer_name)}
+                        onClick={() => handleDownloadTicketDirectly(reg.events!, reg.ticket_code, reg.buyer_name, reg.event_function || '')}
                         className="p-1.5 bg-inputBg hover:bg-divider border border-divider text-[#FF8000] hover:text-white cursor-pointer transition-colors"
                         title="Descargar Entrada"
                       >
@@ -3195,7 +3232,7 @@ export default function App({ onBack }: AppProps) {
                     document.body.removeChild(link);
                     showToast('Ticket descargado con éxito', 'success');
                   } catch (err) {
-                    showToast('Error de CORS: no se puede descargar de forma segura. Haz click derecho sobre la imagen para guardarla.', 'error');
+                    handleDownloadTicketDirectly(showTicketDesigner.event, showTicketDesigner.ticketCode, showTicketDesigner.buyerName || '', showTicketDesigner.eventFunction || '');
                   }
                 }}
                 className="bg-[#FF8000] text-canvas px-6 py-2.5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all hover:bg-opacity-95 active:scale-[0.98] cursor-pointer"
