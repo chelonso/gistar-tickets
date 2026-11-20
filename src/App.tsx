@@ -2322,9 +2322,9 @@ export default function App({ onBack }: AppProps) {
       {/* SCANNER DRAWER */}
       {showScannerDrawer && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex justify-end z-50 animate-fade-in">
-          <div className="w-full tickets-drawer-wide bg-surface h-full shadow-2xl p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden animate-fade-in">
+          <div className="w-full tickets-drawer-wide bg-surface h-full shadow-2xl p-4 sm:p-6 flex flex-col justify-between border-l border-divider animate-slide-in rounded-none text-primaryText overflow-hidden animate-fade-in">
             {/* Drawer Header */}
-            <div className="flex justify-between items-center border-b border-divider pb-4 shrink-0">
+            <div className="flex justify-between items-center border-b border-divider pb-3 sm:pb-4 shrink-0">
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider text-[#FF8000] font-sans">Escanear Ticket QR</h2>
                 <p className="text-[9px] text-secondaryText font-mono uppercase mt-0.5">Control de acreditación y canje de productos en tiempo real</p>
@@ -2341,11 +2341,11 @@ export default function App({ onBack }: AppProps) {
             </div>
 
             {/* Drawer Body (Scrollable content) */}
-            <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar text-left">
+            <div className="flex-grow overflow-y-auto px-0 py-3 sm:px-2 space-y-4 custom-scrollbar text-left">
               {/* PAGE 1: SCANNER SCREEN (Kept mounted, but hidden/shown dynamically) */}
               <div 
                 style={{ display: drawerSubView === 'scan' ? 'block' : 'none' }} 
-                className="space-y-6 animate-fade-in"
+                className="space-y-4 animate-fade-in"
               >
                 {/* Active Function filter in door */}
                 {activeEventFunctions.length > 0 && (
@@ -2373,10 +2373,9 @@ export default function App({ onBack }: AppProps) {
                   </div>
                 )}
 
-                {/* Camera Scanner Area */}
-                <div className="bg-canvas border border-divider p-6 flex flex-col items-center rounded-none relative space-y-6">
-                  {/* Virtual Scanner Screen */}
-                  <div className="tickets-scanner-screen">
+                {/* Camera Scanner Viewport (Insertado directo en el layout sin contenedor con padding) */}
+                <div className="w-full space-y-2.5">
+                  <div className="tickets-scanner-screen w-full">
                     {/* Keep qr-reader mounted in DOM, but hide it if camera is inactive */}
                     <div className={`absolute inset-0 w-full h-full ${isCameraActive ? 'block' : 'hidden'}`}>
                       <div id="qr-reader" className="w-full h-full overflow-hidden object-cover"></div>
@@ -2415,12 +2414,10 @@ export default function App({ onBack }: AppProps) {
                     <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2 border-[#FF8000] pointer-events-none z-10"></div>
                   </div>
 
-                  {/* Instructions badge */}
-                  <div className="w-full text-center pt-1">
-                    <p className="text-[10px] font-mono text-mutedText uppercase tracking-wider">
-                      Apunta la cámara al código QR de la entrada para validar
-                    </p>
-                  </div>
+                  {/* Leyenda debajo del viewport */}
+                  <p className="text-[10px] font-mono text-mutedText uppercase tracking-wider text-center pt-1">
+                    Apunta la cámara al código QR de la entrada para validar
+                  </p>
                 </div>
 
                 {/* Scan Error box */}
