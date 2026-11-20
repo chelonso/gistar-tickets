@@ -488,13 +488,8 @@ export default function App({ onBack }: AppProps) {
 
   const loadRegistrations = async () => {
     try {
-      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?select=*,events(*)&order=created_at.desc&_t=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
+      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?select=*,events(*)&order=created_at.desc`, {
+        credentials: 'include'
       });
       if (res.ok) {
         setRegistrations(await res.json());
