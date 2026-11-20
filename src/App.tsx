@@ -1008,9 +1008,9 @@ export default function App({ onBack }: AppProps) {
       return;
     }
 
-    const currentEv = events.find(ev => ev.id === (regForm.event_id || selectedEventId));
-    const funcs = normalizeEventFunctions(currentEv?.functions);
-    const targetFunction = regForm.event_function || (funcs.length > 0 ? funcs[0].name : null);
+    const targetFunction = (regForm.event_function && regForm.event_function.trim() !== '') 
+      ? regForm.event_function.trim() 
+      : null;
 
     try {
       // 1. Update registrations name & email & function
@@ -1136,9 +1136,7 @@ export default function App({ onBack }: AppProps) {
         const items = await res.json();
         const selectedItemIds = items.map((i: any) => i.event_item_id);
 
-        const currentEv = events.find(e => e.id === reg.event_id);
-        const funcs = normalizeEventFunctions(currentEv?.functions);
-        const initialFunc = reg.event_function || (funcs.length > 0 ? funcs[0].name : '');
+        const initialFunc = reg.event_function || '';
         
         setRegForm({
           id: reg.id,
@@ -1381,7 +1379,9 @@ export default function App({ onBack }: AppProps) {
         }
 
         // 3. Draw Function Name Text (if configured)
-        const fnNameToDraw = eventFunction || (event.functions && event.functions.length > 0 ? (typeof event.functions[0] === 'string' ? event.functions[0] : event.functions[0]?.name) : '');
+        const fnNameToDraw = eventFunction !== ''
+          ? (eventFunction || (event.functions && event.functions.length > 0 ? (typeof event.functions[0] === 'string' ? event.functions[0] : event.functions[0]?.name) : ''))
+          : '';
         if (functionConfig && functionConfig.visible !== false && fnNameToDraw) {
           const funcSize = Number(functionConfig.size) || Math.max(12, Math.round(imgHeight * 0.07));
           const funcColor = functionConfig.color || '#FF8000';
@@ -1502,7 +1502,9 @@ export default function App({ onBack }: AppProps) {
       }
 
       // Draw Function Name
-      const fnNameToDraw = eventFunction || (event.functions && event.functions.length > 0 ? (typeof event.functions[0] === 'string' ? event.functions[0] : event.functions[0]?.name) : '');
+      const fnNameToDraw = eventFunction !== ''
+        ? (eventFunction || (event.functions && event.functions.length > 0 ? (typeof event.functions[0] === 'string' ? event.functions[0] : event.functions[0]?.name) : ''))
+        : '';
       if (functionConfig && functionConfig.visible !== false && fnNameToDraw) {
         const funcSize = Number(functionConfig.size) || Math.max(12, Math.round(imgHeight * 0.07));
         const funcColor = functionConfig.color || '#FF8000';
@@ -3023,13 +3025,14 @@ export default function App({ onBack }: AppProps) {
                   return (
                     <div className="space-y-1 animate-fade-in">
                       <label className="text-[10px] font-mono font-bold text-[#FF8000] uppercase tracking-wider block">
-                        Función / Subdivisión *
+                        Función / Subdivisión
                       </label>
                       <select
-                        value={regForm.event_function || funcs[0]?.name || ''}
+                        value={regForm.event_function || ''}
                         onChange={(e) => setRegForm({ ...regForm, event_function: e.target.value })}
                         className="w-full bg-inputBg border border-[#FF8000]/40 px-3 py-2 text-xs text-primaryText font-mono focus:border-[#FF8000] focus:outline-none rounded-none cursor-pointer"
                       >
+                        <option value="">-- Sin función asignada --</option>
                         {funcs.map(fn => (
                           <option key={fn.id} value={fn.name}>
                             {fn.name} {fn.time ? `(${fn.time} hs)` : ''}
