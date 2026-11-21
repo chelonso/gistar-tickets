@@ -111,6 +111,8 @@ export default function App({ onBack }: AppProps) {
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [drawerSubView, setDrawerSubView] = useState<'scan' | 'result'>('scan');
   const drawerSubViewRef = useRef<'scan' | 'result'>('scan');
+  const isProcessingScanRef = useRef<boolean>(false);
+  const lastScannedCodeRef = useRef<{ code: string; time: number } | null>(null);
 
   useEffect(() => {
     drawerSubViewRef.current = drawerSubView;
@@ -121,8 +123,11 @@ export default function App({ onBack }: AppProps) {
     if (showScannerDrawer) {
       setIsCameraActive(true);
       setDrawerSubView('scan');
+      isProcessingScanRef.current = false;
+      lastScannedCodeRef.current = null;
     } else {
       setIsCameraActive(false);
+      isProcessingScanRef.current = false;
     }
   }, [activeTab, showScannerDrawer]);
 
@@ -418,12 +423,31 @@ export default function App({ onBack }: AppProps) {
             }
           },
           (decodedText) => {
-            if (isMounted && drawerSubViewRef.current === 'scan') {
-              if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                try { navigator.vibrate(50); } catch {}
-              }
-              handleScanValidate(decodedText);
+            if (!isMounted || drawerSubViewRef.current !== 'scan') return;
+
+            // Debouncing: si ya se está procesando una lectura, ignorar frames subsiguientes
+            if (isProcessingScanRef.current) return;
+
+            // Evitar repetir la misma entrada escaneada accidentalmente en menos de 2.5 segundos
+            const now = Date.now();
+            if (
+              lastScannedCodeRef.current &&
+              lastScannedCodeRef.current.code === decodedText &&
+              now - lastScannedCodeRef.current.time < 2500
+            ) {
+              return;
             }
+
+            // Bloqueo inmediato antes de cualquier llamada asíncrona
+            isProcessingScanRef.current = true;
+            lastScannedCodeRef.current = { code: decodedText, time: now };
+
+            // Vibración única de confirmación (50ms)
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              try { navigator.vibrate(50); } catch {}
+            }
+
+            handleScanValidate(decodedText);
           },
           (_error) => {
             // ignore scan module errors
@@ -1177,7 +1201,10 @@ export default function App({ onBack }: AppProps) {
 
   // Scan Validation Request (Step 1: Check ticket info in database)
   const handleScanValidate = async (code: string) => {
-    if (!code) return;
+    if (!code) {
+      isProcessingScanRef.current = false;
+      return;
+    }
     setIsScanning(true);
     setScanError(null);
     setScannedResult(null);
@@ -1187,6 +1214,9 @@ export default function App({ onBack }: AppProps) {
       setScanError('Formato de código inválido. Debe ser EVT-###### (Ej: EVT-123456)');
       showToast('Formato de código inválido', 'error');
       setIsScanning(false);
+      setTimeout(() => {
+        isProcessingScanRef.current = false;
+      }, 1500);
       return;
     }
 
@@ -1205,6 +1235,9 @@ export default function App({ onBack }: AppProps) {
       if (registrations.length === 0) {
         setScanError('Ticket inexistente o código QR inválido');
         showToast('Ticket inexistente o código QR inválido', 'error');
+        setTimeout(() => {
+          isProcessingScanRef.current = false;
+        }, 1500);
         return;
       }
 
@@ -1239,6 +1272,9 @@ export default function App({ onBack }: AppProps) {
     } catch (err: any) {
       setScanError(err.message);
       showToast('Error de red: ' + err.message, 'error');
+      setTimeout(() => {
+        isProcessingScanRef.current = false;
+      }, 1500);
     } finally {
       setIsScanning(false);
     }
@@ -2519,13 +2555,16 @@ export default function App({ onBack }: AppProps) {
                         setScannedResult(null);
                         setScanError(null);
                         setDrawerSubView('scan');
+                        setTimeout(() => {
+                          isProcessingScanRef.current = false;
+                        }, 300);
                       }}
-                      className="flex items-center gap-2 text-secondaryText hover:text-white font-mono uppercase font-bold text-[10px] tracking-wider mb-6 pb-2 border-b border-divider/40 w-full cursor-pointer text-left"
+                      className="w-full bg-[#FF8000]/10 hover:bg-[#FF8000]/20 border-2 border-[#FF8000] text-[#FF8000] hover:text-white py-3.5 px-5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all flex items-center justify-center gap-3 cursor-pointer shadow-lg active:scale-[0.98]"
                     >
-                      <svg className="w-4 h-4 text-[#FF8000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-[#FF8000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
                       </svg>
-                      Volver al Escáner
+                      <span>Volver al Escáner / Siguiente Ticket</span>
                     </button>
 
                     {/* Status Card */}
@@ -2676,6 +2715,26 @@ export default function App({ onBack }: AppProps) {
                         )}
                       </div>
                     )}
+
+                    {/* Bottom Return to Scanner button */}
+                    <div className="pt-2">
+                      <button
+                        onClick={() => {
+                          setScannedResult(null);
+                          setScanError(null);
+                          setDrawerSubView('scan');
+                          setTimeout(() => {
+                            isProcessingScanRef.current = false;
+                          }, 300);
+                        }}
+                        className="w-full bg-[#FF8000] text-canvas hover:bg-opacity-95 py-3.5 px-5 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all flex items-center justify-center gap-3 cursor-pointer shadow-lg active:scale-[0.98]"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span>Volver al Escáner / Siguiente Ticket</span>
+                      </button>
+                    </div>
                   </div>
                 );
               })()}
