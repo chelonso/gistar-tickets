@@ -176,6 +176,7 @@ export default function App({ onBack }: AppProps) {
     buyer_name: string;
     buyer_email: string;
     event_function: string;
+    status?: 'pending' | 'checked_in' | 'canceled';
     selected_items: string[];
     quantity?: number;
   }>({
@@ -183,6 +184,7 @@ export default function App({ onBack }: AppProps) {
     buyer_name: '',
     buyer_email: '',
     event_function: '',
+    status: 'pending',
     selected_items: [],
     quantity: 1
   });
@@ -1012,20 +1014,31 @@ export default function App({ onBack }: AppProps) {
       ? regForm.event_function.trim() 
       : null;
 
+    const newStatus = regForm.status || 'pending';
+
     try {
-      // 1. Update registrations name & email & function
+      // 1. Update registrations name & email & function & status
+      const updatePayload: any = {
+        buyer_name: regForm.buyer_name,
+        buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
+        event_function: targetFunction,
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      if (newStatus === 'pending') {
+        updatePayload.checked_in_at = null;
+      } else if (newStatus === 'checked_in') {
+        const existingReg = registrations.find(r => r.id === regForm.id);
+        updatePayload.checked_in_at = existingReg?.checked_in_at || new Date().toISOString();
+      }
+
       const regRes = await fetch(`${gatewayUrl}/rest/v1/registrations?id=eq.${regForm.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify({
-          buyer_name: regForm.buyer_name,
-          buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
-          event_function: targetFunction,
-          updated_at: new Date().toISOString()
-        }),
+        body: JSON.stringify(updatePayload),
         credentials: 'include'
       });
 
@@ -1079,7 +1092,9 @@ export default function App({ onBack }: AppProps) {
             ...r,
             buyer_name: regForm.buyer_name,
             buyer_email: regForm.buyer_email ? regForm.buyer_email.trim() : '',
-            event_function: targetFunction
+            event_function: targetFunction,
+            status: newStatus,
+            checked_in_at: updatePayload.checked_in_at !== undefined ? updatePayload.checked_in_at : r.checked_in_at
           };
         }
         return r;
@@ -1094,6 +1109,7 @@ export default function App({ onBack }: AppProps) {
         buyer_name: '',
         buyer_email: '',
         event_function: '',
+        status: 'pending',
         selected_items: []
       });
 
@@ -1144,6 +1160,7 @@ export default function App({ onBack }: AppProps) {
           buyer_name: reg.buyer_name,
           buyer_email: reg.buyer_email || '',
           event_function: initialFunc,
+          status: reg.status,
           selected_items: selectedItemIds,
           quantity: 1
         });
@@ -1265,6 +1282,60 @@ export default function App({ onBack }: AppProps) {
       } else {
         const errText = await res.text();
         showToast('Error al acreditar: ' + errText, 'error');
+      }
+    } catch (err: any) {
+      showToast('Error de red: ' + err.message, 'error');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+  // Revert / Reset check-in back to pending
+  const handleResetToPending = async (regId: string) => {
+    if (!window.confirm('¿Deseas restablecer este ticket a estado PENDIENTE? Se cancelará el registro de ingreso actual para que pueda volver a ser validado.')) {
+      return;
+    }
+    setIsCheckingIn(true);
+    try {
+      const nowStr = new Date().toISOString();
+      const res = await fetch(`${gatewayUrl}/rest/v1/registrations?id=eq.${regId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          status: 'pending',
+          checked_in_at: null,
+          updated_at: nowStr
+        }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        showToast('Ticket restablecido a Pendiente', 'success');
+
+        // Actualización optimista inmediata
+        setRegistrations(prev => prev.map(r => r.id === regId ? {
+          ...r,
+          status: 'pending',
+          checked_in_at: null
+        } : r));
+
+        if (scannedResult) {
+          setScannedResult({
+            ...scannedResult,
+            registration: {
+              ...scannedResult.registration,
+              status: 'pending',
+              checked_in_at: null
+            }
+          });
+        }
+        await loadRegistrations();
+      } else {
+        const errText = await res.text();
+        showToast('Error al restablecer ticket: ' + errText, 'error');
       }
     } catch (err: any) {
       showToast('Error de red: ' + err.message, 'error');
@@ -2537,6 +2608,18 @@ export default function App({ onBack }: AppProps) {
                       </button>
                     )}
 
+                    {/* Revert / Reset Check-in Button when ticket is already checked in */}
+                    {isCheckedIn && (
+                      <button
+                        onClick={() => handleResetToPending(registration.id)}
+                        disabled={isCheckingIn}
+                        className="w-full bg-inputBg hover:bg-divider border border-divider hover:border-amber-500/50 text-secondaryText hover:text-amber-400 py-3 px-4 rounded-none font-mono uppercase font-bold text-xs tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
+                        title="Restablecer ticket a Pendiente para volver a probar el ingreso"
+                      >
+                        ↺ Restablecer a Pendiente (Deshacer Ingreso)
+                      </button>
+                    )}
+
                     {/* Products / Items Section */}
                     {isCheckedIn && (
                       <div className="border border-divider p-6 bg-surface space-y-6">
@@ -3108,6 +3191,23 @@ export default function App({ onBack }: AppProps) {
                     placeholder="correo@ejemplo.com"
                   />
                 </div>
+
+                {regForm.id && (
+                  <div className="space-y-1 animate-fade-in">
+                    <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block">
+                      Estado de la Entrada / Acreditación
+                    </label>
+                    <select
+                      value={regForm.status || 'pending'}
+                      onChange={(e) => setRegForm({ ...regForm, status: e.target.value as any })}
+                      className="w-full bg-inputBg border border-divider px-3 py-2 text-xs text-primaryText font-mono focus:border-secondaryText focus:outline-none rounded-none cursor-pointer"
+                    >
+                      <option value="pending">⏳ Pendiente (Por ingresar / no acreditado)</option>
+                      <option value="checked_in">✓ Acreditado (Ingresado al evento)</option>
+                      <option value="canceled">🛑 Cancelado / Anulado</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <label className="text-[10px] font-mono font-bold text-mutedText uppercase tracking-wider block mb-2">Asociar combos / productos extra:</label>
